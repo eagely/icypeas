@@ -1,4 +1,16 @@
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Location {
+    row: usize,
+    column: usize,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Token {
+    kind: TokenKind,
+    location: Location,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum TokenKind {
     LeftBrace,
     RightBrace,
