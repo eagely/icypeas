@@ -1,4 +1,4 @@
-use super::enums::Token;
+use super::enums::{Location, Token, TokenKind};
 
 pub struct Lexer {
     source: Vec<char>,
@@ -17,5 +17,24 @@ impl Lexer {
             row: 0,
             bol: 0,
         }
+    }
+
+    fn emit(&mut self, kind: TokenKind) {
+        self.tokens.push(Token {
+            kind,
+            location: Location {
+                row: self.row,
+                column: self.index - self.bol,
+            },
+        })
+    }
+
+    fn next(&mut self) -> Option<&char> {
+        self.index += 1;
+        self.source.get(self.index)
+    }
+
+    fn peek(&self) -> Option<&char> {
+        self.source.get(self.index + 1)
     }
 }

@@ -1,13 +1,13 @@
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Location {
-    row: usize,
-    column: usize,
+    pub row: usize,
+    pub column: usize,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Token {
-    kind: TokenKind,
-    location: Location,
+    pub kind: TokenKind,
+    pub location: Location,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
