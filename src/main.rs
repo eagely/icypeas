@@ -1,5 +1,17 @@
+use lexer::lexer::Lexer;
+
+mod error;
 mod lexer;
 
 fn main() {
-    println!("Hello World!");
+    let source = "Hello";
+    let mut lexer = Lexer::new(source); 
+    match lexer.lex() {
+        Ok(tokens) => {
+            for token in tokens {
+                println!("{:?}", token);
+            }
+        },
+        Err(e) => eprintln!("{:?}", e),
+    }
 }

@@ -52,4 +52,5 @@ pub enum TokenKind {
     True,
     False,
     Null,
+    Identifier(String)
 }
