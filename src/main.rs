@@ -4,7 +4,8 @@ mod error;
 mod lexer;
 
 fn main() {
-    let source = "Hello";
+    let source = "fn 123 Hello";
+    dbg!(source);
     let mut lexer = Lexer::new(source); 
     match lexer.lex() {
         Ok(tokens) => {

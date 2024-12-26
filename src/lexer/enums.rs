@@ -1,4 +1,6 @@
-#[derive(Clone, Debug, Eq, PartialEq)]
+use std::fmt::{Debug, Display, Formatter, Result};
+
+#[derive(Clone, Eq, PartialEq)]
 pub struct Location {
     pub row: usize,
     pub column: usize,
@@ -52,5 +54,19 @@ pub enum TokenKind {
     True,
     False,
     Null,
-    Identifier(String)
+    Identifier(String),
+    Number(i64),
+    Unknown(char),
+}
+
+impl Debug for Location {
+    fn fmt(&self, f: &mut Formatter) -> Result {
+        write!(f, "{}:{}", self.row + 1, self.column + 1)
+    }
+}
+
+impl Display for Location {
+    fn fmt(&self, f: &mut Formatter) -> Result {
+        write!(f, "{}:{}", self.row + 1, self.column + 1)
+    }
 }

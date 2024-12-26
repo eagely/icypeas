@@ -1,5 +1,5 @@
 use super::enums::{Location, Token, TokenKind};
-use crate::error::Result;
+use crate::error::{Error, Result};
 
 pub struct Lexer {
     source: Vec<char>,
@@ -21,10 +21,24 @@ impl Lexer {
     }
 
     pub fn lex(&mut self) -> Result<Vec<Token>> {
-        if let Some(c) = self.peek() {
-            if c.is_alphabetic() || c == &'_' {
-                self.consume_identifier();
-            }
+        while let Some(c) = self.current() {
+            let kind = match c {
+                c if c.is_whitespace() => {
+                    self.advance();
+                    continue;
+                }
+                _ => {
+                    if c.is_digit(10) {
+                        self.consume_number()?
+                    } else if c.is_alphabetic() || c == '_' {
+                        self.consume_identifier()?
+                    } else {
+                        TokenKind::Unknown(c)
+                    }
+                }
+            };
+            self.emit(kind);
+            self.advance();
         }
         Ok(self.tokens.to_owned())
     }
@@ -34,33 +48,42 @@ impl Lexer {
             kind,
             location: Location {
                 row: self.row,
-                column: self.index - self.bol,
+                column: self.index.saturating_sub(self.bol),
             },
         })
     }
 
-    fn next(&mut self) -> Option<char> {
-        self.index += 1;
+    fn current(&self) -> Option<char> {
         self.source.get(self.index).copied()
     }
 
-    fn peek(&self) -> Option<&char> {
-        self.source.get(self.index + 1)
+    fn next(&self) -> Option<char> {
+        self.source.get(self.index + 1).copied()
     }
 
-    fn consume_identifier(&mut self) {
+    fn advance(&mut self) {
+        self.index += 1;
+        if let Some(c) = self.current() {
+            if c == '\n' {
+                self.row += 1;
+                self.bol = self.index + 1;
+            }
+        }
+    }
+
+    fn consume_identifier(&mut self) -> Result<TokenKind> {
         let start = self.index;
 
-        while let Some(c) = self.peek() {
-            if !c.is_alphanumeric() && c != &'_' {
+        while let Some(c) = self.next() {
+            if !c.is_alphanumeric() && c != '_' {
                 break;
             }
-            self.next();
+            self.advance();
         }
 
         let identifier: String = self.source[start..=self.index].iter().collect();
 
-        let kind = match identifier.as_str() {
+        Ok(match identifier.as_str() {
             "if" => TokenKind::If,
             "elif" => TokenKind::Elif,
             "else" => TokenKind::Else,
@@ -74,7 +97,27 @@ impl Lexer {
             "false" => TokenKind::False,
             "null" => TokenKind::Null,
             _ => TokenKind::Identifier(identifier),
-        };
-        self.emit(kind);
+        })
+    }
+
+    fn consume_number(&mut self) -> Result<TokenKind> {
+        let start = self.index;
+
+        while let Some(c) = self.next() {
+            if !c.is_ascii_digit() {
+                break;
+            }
+            self.advance();
+        }
+
+        let value = self.source[start..=self.index]
+            .iter()
+            .collect::<String>()
+            .parse::<i64>();
+
+        match value {
+            Ok(v) => Ok(TokenKind::Number(v)),
+            Err(_) => Err(Error::NotANumber),
+        }
     }
 }
