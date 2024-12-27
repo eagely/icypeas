@@ -4,7 +4,7 @@ mod error;
 mod lexer;
 
 fn main() {
-    let source = "fn 123 Hello";
+    let source = ":(){:|:&};:";
     dbg!(source);
     let mut lexer = Lexer::new(source); 
     match lexer.lex() {

@@ -40,7 +40,6 @@ pub enum TokenKind {
     Hash,
     Newline,
     QuestionMark,
-    Range,
     Semicolon,
     If,
     Elif,

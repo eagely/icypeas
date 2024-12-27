@@ -27,6 +27,33 @@ impl Lexer {
                     self.advance();
                     continue;
                 }
+                '{' => TokenKind::LeftBrace,
+                '}' => TokenKind::RightBrace,
+                '[' => TokenKind::LeftBracket,
+                ']' => TokenKind::RightBracket,
+                '(' => TokenKind::LeftParen,
+                ')' => TokenKind::RightParen,
+                '&' => TokenKind::Ampersand,
+                '!' => TokenKind::Bang,
+                '^' => TokenKind::Caret,
+                '|' => TokenKind::Pipe,
+                '+' => TokenKind::Plus,
+                '-' => TokenKind::Minus,
+                '*' => TokenKind::Star,
+                '/' => TokenKind::Slash,
+                '%' => TokenKind::Percent,
+                '=' => TokenKind::Equals,
+                '<' => TokenKind::Less,
+                '>' => TokenKind::Greater,
+                '@' => TokenKind::At,
+                ':' => TokenKind::Colon,
+                ',' => TokenKind::Comma,
+                '$' => TokenKind::Dollar,
+                '.' => TokenKind::Dot,
+                '#' => TokenKind::Hash,
+                '\n' => TokenKind::Newline,
+                '?' => TokenKind::QuestionMark,
+                ';' => TokenKind::Semicolon,
                 _ => {
                     if c.is_digit(10) {
                         self.consume_number()?
