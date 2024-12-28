@@ -4,7 +4,7 @@ mod error;
 mod lexer;
 
 fn main() {
-    let source = ":(){:|:&};:";
+    let source = ".1 1.0 -0 -1245 123.456 1";
     dbg!(source);
     let mut lexer = Lexer::new(source); 
     match lexer.lex() {

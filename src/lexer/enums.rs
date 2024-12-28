@@ -6,13 +6,13 @@ pub struct Location {
     pub column: usize,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Token {
     pub kind: TokenKind,
     pub location: Location,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum TokenKind {
     LeftBrace,
     RightBrace,
@@ -53,8 +53,9 @@ pub enum TokenKind {
     True,
     False,
     Null,
+    Float(f64),
     Identifier(String),
-    Number(i64),
+    Integer(i64),
     Unknown(char),
 }
 

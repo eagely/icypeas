@@ -23,6 +23,11 @@ impl Lexer {
     pub fn lex(&mut self) -> Result<Vec<Token>> {
         while let Some(c) = self.current() {
             let kind = match c {
+                '\n' => {
+                    self.row += 1;
+                    self.bol = self.index + 1;
+                    TokenKind::Newline
+                }
                 c if c.is_whitespace() => {
                     self.advance();
                     continue;
@@ -51,7 +56,6 @@ impl Lexer {
                 '$' => TokenKind::Dollar,
                 '.' => TokenKind::Dot,
                 '#' => TokenKind::Hash,
-                '\n' => TokenKind::Newline,
                 '?' => TokenKind::QuestionMark,
                 ';' => TokenKind::Semicolon,
                 _ => {
@@ -90,12 +94,6 @@ impl Lexer {
 
     fn advance(&mut self) {
         self.index += 1;
-        if let Some(c) = self.current() {
-            if c == '\n' {
-                self.row += 1;
-                self.bol = self.index + 1;
-            }
-        }
     }
 
     fn consume_identifier(&mut self) -> Result<TokenKind> {
@@ -129,22 +127,42 @@ impl Lexer {
 
     fn consume_number(&mut self) -> Result<TokenKind> {
         let start = self.index;
+        let mut float = false;
 
         while let Some(c) = self.next() {
-            if !c.is_ascii_digit() {
+            if c.is_ascii_digit() {
+                self.advance();
+            } else if c == '.' && !float {
+                float = true;
+                self.advance();
+                break;
+            } else {
                 break;
             }
-            self.advance();
+        }
+        
+        if float {
+            self.next()
+                .ok_or(Error::UnexpectedEndOfFile)?
+                .is_ascii_digit()
+                .then_some(())
+                .ok_or(Error::NotANumber)?;
         }
 
-        let value = self.source[start..=self.index]
-            .iter()
-            .collect::<String>()
-            .parse::<i64>();
-
-        match value {
-            Ok(v) => Ok(TokenKind::Number(v)),
-            Err(_) => Err(Error::NotANumber),
+        while let Some(c) = self.next() {
+            if c.is_ascii_digit() {
+                self.advance();
+            } else {
+                break;
+            }
         }
+
+        let number = self.source[start..=self.index].iter().collect::<String>();
+
+        Ok(if float {
+            TokenKind::Float(number.parse().map_err(|_| Error::NotANumber)?)
+        } else {
+            TokenKind::Integer(number.parse().map_err(|_| Error::NotANumber)?)
+        })
     }
 }
