@@ -1,0 +1,19 @@
+expression = body | declaration | if | lambda | op ;
+body = IDENTIFIER { pattern } "=" expression ;
+declaration = IDENTIFIER ":" type { type } ;
+if = "if" expression expression { "else if" expression expression } "else" expression ;
+lambda = { IDENTIFIER } "$" expression ;
+op = primary { IDENTIFIER primary } ;
+
+type = "_" | IDENTIFIER ;
+
+pattern = "_"
+       | "true" | "false"
+       | NUMBER
+       | STRING
+       | IDENTIFIER ;
+
+primary = "true" | "false" | "null"
+       | "(" expression ")"
+       | NUMBER | STRING
+       | IDENTIFIER ;
