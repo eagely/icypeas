@@ -3,7 +3,6 @@ use crate::error::{Error, Result};
 
 pub struct Lexer {
     source: Vec<char>,
-    tokens: Vec<Token>,
     index: usize,
     row: usize,
     bol: usize,
@@ -13,7 +12,6 @@ impl Lexer {
     pub fn new(source: &str) -> Lexer {
         Lexer {
             source: source.chars().collect(),
-            tokens: Vec::new(),
             index: 0,
             row: 0,
             bol: 0,
@@ -21,6 +19,7 @@ impl Lexer {
     }
 
     pub fn lex(&mut self) -> Result<Vec<Token>> {
+        let mut tokens = Vec::new();
         while let Some(c) = self.current() {
             let kind = match c {
                 '\n' => {
@@ -68,20 +67,16 @@ impl Lexer {
                     }
                 }
             };
-            self.emit(kind);
+            tokens.push(Token {
+                kind,
+                location: Location {
+                    row: self.row,
+                    column: self.index.saturating_sub(self.bol),
+                },
+            });
             self.advance();
         }
-        Ok(self.tokens.to_owned())
-    }
-
-    fn emit(&mut self, kind: TokenKind) {
-        self.tokens.push(Token {
-            kind,
-            location: Location {
-                row: self.row,
-                column: self.index.saturating_sub(self.bol),
-            },
-        })
+        Ok(tokens)
     }
 
     fn current(&self) -> Option<char> {
