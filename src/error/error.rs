@@ -3,4 +3,5 @@ pub enum Error {
     InvalidIdentifier,
     NotANumber,
     UnexpectedEndOfFile,
+    UnterminatedString,
 }

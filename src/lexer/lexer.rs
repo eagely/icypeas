@@ -86,6 +86,7 @@ impl Lexer {
                 '#' => TokenKind::Hash,
                 '?' => TokenKind::QuestionMark,
                 ';' => TokenKind::Semicolon,
+                '"' => return Ok(self.consume_string()?),
                 _ => {
                     if c.is_digit(10) {
                         return Ok(self.consume_number()?);
@@ -148,5 +149,19 @@ impl Lexer {
             TokenKind::Number,
             TokenValue::Number(number.parse().map_err(|_| Error::NotANumber)?),
         ))
+    }
+
+    fn consume_string(&mut self) -> Result<(TokenKind, TokenValue)> {
+        let start = self.index + 1;
+        while let Some(c) = self.next() {
+            self.advance();
+            if c == '"' {
+                return Ok((
+                    TokenKind::String,
+                    TokenValue::String(self.source[start..self.index].iter().collect()),
+                ));
+            }
+        }
+        Err(Error::UnterminatedString)
     }
 }

@@ -56,6 +56,7 @@ pub enum TokenKind {
     Null,
     Identifier,
     Number,
+    String,
     Unknown,
 }
 
@@ -63,6 +64,7 @@ pub enum TokenKind {
 pub enum TokenValue {
     Identifier(String),
     Number(i128),
+    String(String),
     Unknown(char),
     None,
 }
