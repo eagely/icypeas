@@ -6,7 +6,7 @@ use lexer::lexer::Lexer;
 use parser::parser::Parser;
 
 fn main() {
-    let source = "1.0 hi \"hello\" fn";
+    let source = "(3)";
     dbg!(source);
     let mut lexer = Lexer::new(source);
     let tokens = match lexer.lex() {
@@ -20,4 +20,5 @@ fn main() {
     dbg!(&tokens);
 
     let mut parser = Parser::new(tokens);
+    dbg!(parser.parse().unwrap());
 }

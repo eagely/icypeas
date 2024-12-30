@@ -1,5 +1,6 @@
 use crate::lexer::enums::Token;
 
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Expression {
     Assignment {
         identifier: Token,

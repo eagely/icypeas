@@ -32,7 +32,7 @@ impl Parser {
             if try_consume_any!(*self, TokenKind::Semicolon, TokenKind::Newline) {
                 continue;
             }
-            self.advance();
+            expressions.push(self.expression()?);
         }
         Ok(expressions)
     }
@@ -50,10 +50,39 @@ impl Parser {
     }
 
     fn matches(&self, kind: TokenKind) -> bool {
-        self.next().map_or(false, |t| t.kind == kind)
+        self.current().map_or(false, |t| t.kind == kind)
     }
 
     fn is_eof(&self) -> bool {
         self.index >= self.tokens.len()
+    }
+
+    fn expression(&mut self) -> Result<Expression> {
+        self.primary()
+    }
+
+    fn primary(&mut self) -> Result<Expression> {
+        let token = self.current().ok_or(Error::UnexpectedEndOfFile)?;
+
+        match token.kind {
+            TokenKind::True
+            | TokenKind::False
+            | TokenKind::Null
+            | TokenKind::Number
+            | TokenKind::String => {
+                self.advance();
+                Ok(Expression::Literal { token })
+            }
+            TokenKind::LeftParenthesis => {
+                self.advance();
+                let expression = self.expression()?;
+                dbg!(&self.current());
+                if !try_consume_any!(*self, TokenKind::RightParenthesis) {
+                    return Err(Error::MissingClosingParenthesis);
+                }
+                Ok(expression)
+            }
+            _ => Err(Error::ExpectedExpression),
+        }
     }
 }

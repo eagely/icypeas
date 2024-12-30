@@ -1,26 +1,26 @@
 use std::fmt::{Debug, Display, Formatter, Result};
 
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct Location {
     pub row: usize,
     pub column: usize,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Token {
     pub kind: TokenKind,
     pub value: TokenValue,
     pub location: Location,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum TokenKind {
     LeftBrace,
     RightBrace,
     LeftBracket,
     RightBracket,
-    LeftParen,
-    RightParen,
+    LeftParenthesis,
+    RightParenthesis,
     Ampersand,
     Bang,
     Caret,
@@ -60,7 +60,7 @@ pub enum TokenKind {
     Unknown,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum TokenValue {
     Identifier(String),
     Number(i128),
