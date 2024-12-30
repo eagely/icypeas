@@ -1,8 +1,9 @@
 use crate::lexer::enums::Token;
 
 pub enum Expression {
-    Assign {
+    Assignment {
         identifier: Token,
+        parameters: Option<Vec<Token>>,
         expression: Box<Expression>,
     },
     Unary {
@@ -14,15 +15,18 @@ pub enum Expression {
         operator: Token,
         rhs: Box<Expression>,
     },
-    Function {
+    Declaration {
         name: Token,
         types: Vec<Token>,
-        parameters: Vec<Token>,
     },
     If {
         condition: Box<Expression>,
         expression: Box<Expression>,
         otherwise: Option<Box<Expression>>,
+    },
+    Lambda {
+        parameters: Option<Vec<Token>>,
+        body: Box<Expression>,
     },
     Literal {
         token: Token,

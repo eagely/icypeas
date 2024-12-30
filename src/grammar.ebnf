@@ -1,10 +1,10 @@
-expression = body | declaration | if | lambda | op ;
-body = IDENTIFIER { pattern } "=" expression ;
+expression = assigment | unary | binary | declaration | if | lambda ;
+assignment = IDENTIFIER { pattern } "=" expression ;
 declaration = IDENTIFIER ":" type { type } ;
 if = "if" expression expression { "else if" expression expression } "else" expression ;
 lambda = { IDENTIFIER } "$" expression ;
-op = primary { IDENTIFIER primary } ;
-
+binary = primary { IDENTIFIER primary } ;
+unary = "!" | "-" | IDENTIFIER expression ;
 type = "_" | IDENTIFIER ;
 
 pattern = "_"
