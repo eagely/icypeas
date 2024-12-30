@@ -9,6 +9,7 @@ pub struct Location {
 #[derive(Clone, Debug, PartialEq)]
 pub struct Token {
     pub kind: TokenKind,
+    pub value: TokenValue,
     pub location: Location,
 }
 
@@ -53,10 +54,17 @@ pub enum TokenKind {
     True,
     False,
     Null,
-    Float(f64),
+    Identifier,
+    Number,
+    Unknown,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum TokenValue {
     Identifier(String),
-    Integer(i64),
+    Number(i128),
     Unknown(char),
+    None,
 }
 
 impl Debug for Location {
