@@ -1,4 +1,4 @@
-use std::fmt::{Debug, Display, Formatter, Result};
+use std::fmt::{write, Debug, Display, Formatter, Result};
 
 #[derive(Clone, PartialEq, Eq)]
 pub struct Location {
@@ -6,7 +6,7 @@ pub struct Location {
     pub column: usize,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct Token {
     pub kind: TokenKind,
     pub value: TokenValue,
@@ -42,6 +42,7 @@ pub enum TokenKind {
     Newline,
     QuestionMark,
     Semicolon,
+    Underscore,
     If,
     Elif,
     Else,
@@ -71,12 +72,47 @@ pub enum TokenValue {
 
 impl Debug for Location {
     fn fmt(&self, f: &mut Formatter) -> Result {
-        write!(f, "{}:{}", self.row + 1, self.column + 1)
+        write!(f, "{:?}:{:?}", self.row + 1, self.column + 1)
     }
 }
 
 impl Display for Location {
     fn fmt(&self, f: &mut Formatter) -> Result {
         write!(f, "{}:{}", self.row + 1, self.column + 1)
+    }
+}
+
+impl Debug for Token {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        write!(f, "{:?}, {:?}, {:?}", self.kind, self.value, self.location)
+    }
+}
+
+impl Display for Token {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        write!(f, "{:?}, {:?}, {:?}", self.kind, self.value, self.location)
+    }
+}
+
+impl TokenKind {
+    pub fn is_primary(&self) -> bool {
+        match self {
+            TokenKind::If
+            | TokenKind::Elif
+            | TokenKind::Else
+            | TokenKind::For
+            | TokenKind::While
+            | TokenKind::Do
+            | TokenKind::Loop
+            | TokenKind::Fn
+            | TokenKind::Return
+            | TokenKind::True
+            | TokenKind::False
+            | TokenKind::Null
+            | TokenKind::Identifier
+            | TokenKind::Number
+            | TokenKind::String => true,
+            _ => false,
+        }
     }
 }

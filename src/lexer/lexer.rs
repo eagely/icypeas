@@ -86,6 +86,7 @@ impl Lexer {
                 '#' => TokenKind::Hash,
                 '?' => TokenKind::QuestionMark,
                 ';' => TokenKind::Semicolon,
+                '_' => TokenKind::Underscore,
                 '"' => return Ok(self.consume_string()?),
                 _ => {
                     if c.is_digit(10) {

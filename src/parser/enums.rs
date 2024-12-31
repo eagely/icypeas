@@ -4,7 +4,7 @@ use crate::lexer::enums::Token;
 pub enum Expression {
     Assignment {
         identifier: Token,
-        parameters: Option<Vec<Token>>,
+        parameters: Vec<Token>,
         expression: Box<Expression>,
     },
     Unary {
@@ -20,13 +20,15 @@ pub enum Expression {
         name: Token,
         types: Vec<Token>,
     },
+    Identifier {
+        token: Token,
+    },
     If {
-        condition: Box<Expression>,
-        expression: Box<Expression>,
+        branches: Vec<(Box<Expression>, Box<Expression>)>,
         otherwise: Option<Box<Expression>>,
     },
     Lambda {
-        parameters: Option<Vec<Token>>,
+        parameters: Vec<Token>,
         body: Box<Expression>,
     },
     Literal {
