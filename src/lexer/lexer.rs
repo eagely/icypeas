@@ -25,7 +25,7 @@ impl Lexer {
                 self.advance();
                 continue;
             }
-            let (kind, value) = self.consume_char(c)?;
+            let (kind, value) = self.consume_token(c)?;
             tokens.push(Token {
                 kind,
                 value,
@@ -37,6 +37,15 @@ impl Lexer {
             self.advance();
         }
         Ok(tokens)
+    }
+
+    fn consume(&mut self, c: char) -> bool {
+        if matches!(self.next(), Some(cc) if cc == c) {
+            self.advance();
+            true
+        } else {
+            false
+        }
     }
 
     fn current(&self) -> Option<char> {
@@ -51,7 +60,7 @@ impl Lexer {
         self.index += 1;
     }
 
-    fn consume_char(&mut self, c: char) -> Result<(TokenKind, TokenValue)> {
+    fn consume_token(&mut self, c: char) -> Result<(TokenKind, TokenValue)> {
         Ok((
             match c {
                 '\n' => {
@@ -59,7 +68,6 @@ impl Lexer {
                     self.bol = self.index + 1;
                     TokenKind::Newline
                 }
-
                 '{' => TokenKind::LeftBrace,
                 '}' => TokenKind::RightBrace,
                 '[' => TokenKind::LeftBracket,
@@ -75,9 +83,27 @@ impl Lexer {
                 '*' => TokenKind::Star,
                 '/' => TokenKind::Slash,
                 '%' => TokenKind::Percent,
-                '=' => TokenKind::Equals,
-                '<' => TokenKind::Less,
-                '>' => TokenKind::Greater,
+                '=' => {
+                    if self.consume('=') {
+                        TokenKind::EqualEqual
+                    } else {
+                        TokenKind::Equal
+                    }
+                }
+                '<' => {
+                    if self.consume('=') {
+                        TokenKind::LessEqual
+                    } else {
+                        TokenKind::Less
+                    }
+                }
+                '>' => {
+                    if self.consume('=') {
+                        TokenKind::GreaterEqual
+                    } else {
+                        TokenKind::Greater
+                    }
+                }
                 '@' => TokenKind::At,
                 ':' => TokenKind::Colon,
                 ',' => TokenKind::Comma,
@@ -87,12 +113,12 @@ impl Lexer {
                 '?' => TokenKind::QuestionMark,
                 ';' => TokenKind::Semicolon,
                 '_' => TokenKind::Underscore,
-                '"' => return Ok(self.consume_string()?),
+                '"' => return self.consume_string(),
                 _ => {
                     if c.is_digit(10) {
-                        return Ok(self.consume_number()?);
+                        return self.consume_number();
                     } else if c.is_alphabetic() || c == '_' {
-                        return Ok(self.consume_identifier()?);
+                        return self.consume_identifier();
                     } else {
                         return Ok((TokenKind::Unknown, TokenValue::Unknown(c)));
                     }

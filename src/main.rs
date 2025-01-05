@@ -6,7 +6,7 @@ use lexer::lexer::Lexer;
 use parser::parser::Parser;
 
 fn main() {
-    let source = "x : int int int 3 + 3 x a b = (n t $ n + t) if true false elif false true else (x t $ x - t)";
+    let source = "x : int int int 3 + 3 x a b = (n t $ n + t) if true == 3 false elif false true else (x t $ x - t)";
     dbg!(source);
     let mut lexer = Lexer::new(source);
     let tokens = match lexer.lex() {

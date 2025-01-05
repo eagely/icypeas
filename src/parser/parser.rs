@@ -128,7 +128,7 @@ impl Parser {
                 .iter()
                 .skip_while(|t| t.kind.is_primary())
                 .next()
-                .map_or(true, |t| t.kind != TokenKind::Equals)
+                .map_or(true, |t| t.kind != TokenKind::Equal)
         {
             return self.parse_if();
         }
@@ -146,7 +146,7 @@ impl Parser {
             parameters.push(t);
         }
 
-        try_consume_any!(*self, TokenKind::Equals);
+        try_consume_any!(*self, TokenKind::Equal);
 
         Ok(Expression::Assignment {
             identifier,
@@ -200,9 +200,12 @@ impl Parser {
             TokenKind::Star,
             TokenKind::Slash,
             TokenKind::Percent,
-            TokenKind::Equals,
+            TokenKind::Equal,
+            TokenKind::EqualEqual,
             TokenKind::Less,
+            TokenKind::LessEqual,
             TokenKind::Greater,
+            TokenKind::GreaterEqual,
             TokenKind::At,
             TokenKind::Colon,
             TokenKind::Hash
