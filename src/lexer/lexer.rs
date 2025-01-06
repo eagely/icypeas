@@ -1,5 +1,5 @@
 use super::enums::{Location, Token, TokenKind, TokenValue};
-use crate::error::{Error, Result};
+use crate::error::{Error, ErrorKind, Result};
 
 pub struct Lexer {
     source: Vec<char>,
@@ -29,10 +29,7 @@ impl Lexer {
             tokens.push(Token {
                 kind,
                 value,
-                location: Location {
-                    row: self.row,
-                    column: self.index.saturating_sub(self.bol),
-                },
+                location: self.location(),
             });
             self.advance();
         }
@@ -58,6 +55,13 @@ impl Lexer {
 
     fn advance(&mut self) {
         self.index += 1;
+    }
+
+    fn location(&self) -> Location {
+        Location {
+            row: self.row,
+            column: self.index.saturating_sub(self.bol),
+        }
     }
 
     fn consume_token(&mut self, c: char) -> Result<(TokenKind, TokenValue)> {
@@ -174,7 +178,11 @@ impl Lexer {
 
         Ok((
             TokenKind::Number,
-            TokenValue::Number(number.parse().map_err(|_| Error::NotANumber)?),
+            TokenValue::Number(
+                number
+                    .parse()
+                    .map_err(|_| Error::new(ErrorKind::NotANumber, self.location(), "This is not a valid number"))?,
+            ),
         ))
     }
 
@@ -189,6 +197,10 @@ impl Lexer {
                 ));
             }
         }
-        Err(Error::UnterminatedString)
+        Err(Error::new(
+            ErrorKind::UnterminatedString,
+            self.location(),
+            "Consider inserting a \" after this string"
+        ))
     }
 }

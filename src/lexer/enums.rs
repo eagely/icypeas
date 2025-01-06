@@ -1,4 +1,4 @@
-use std::fmt::{write, Debug, Display, Formatter, Result};
+use std::fmt::{Debug, Display, Formatter, Result};
 
 #[derive(Clone, PartialEq, Eq)]
 pub struct Location {

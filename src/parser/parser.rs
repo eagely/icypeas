@@ -1,5 +1,5 @@
 use super::enums::Expression;
-use crate::error::{Error, Result};
+use crate::error::{Error, ErrorKind, Result};
 use crate::lexer::enums::{Token, TokenKind};
 
 macro_rules! try_consume_any {
@@ -32,6 +32,10 @@ impl Parser {
             if try_consume_any!(*self, TokenKind::Semicolon, TokenKind::Newline) {
                 continue;
             }
+            if self.is_eof() {
+                break;
+            }
+
             expressions.push(self.parse_expression()?);
         }
         Ok(expressions)
@@ -74,7 +78,7 @@ impl Parser {
             return self.parse_lambda();
         }
 
-        let name = self.current().ok_or(Error::UnexpectedEndOfFile)?;
+        let name = self.current().ok_or(ErrorKind::UnexpectedEndOfFile)?;
 
         match name.kind {
             TokenKind::Identifier => {
@@ -84,13 +88,13 @@ impl Parser {
                 while self.current_is(TokenKind::Underscore)
                     || self.current_is(TokenKind::Identifier)
                 {
-                    let token = self.current().ok_or(Error::UnexpectedEndOfFile)?;
+                    let token = self.current().ok_or(ErrorKind::UnexpectedEndOfFile)?;
                     self.advance();
                     types.push(token);
                 }
                 Ok(Expression::Declaration { name, types })
             }
-            _ => Err(Error::ExpectedExpression),
+            _ => Err(Error::new(ErrorKind::ExpectedExpression, name.location, "This should be an identifier")),
         }
     }
 
@@ -107,7 +111,7 @@ impl Parser {
         let mut parameters = Vec::new();
 
         while self.current_is(TokenKind::Identifier) {
-            parameters.push(self.current().ok_or(Error::UnexpectedEndOfFile)?);
+            parameters.push(self.current().ok_or(ErrorKind::UnexpectedEndOfFile)?);
             self.advance();
         }
 
@@ -133,7 +137,7 @@ impl Parser {
             return self.parse_if();
         }
 
-        let identifier = self.current().ok_or(Error::ExpectedExpression)?;
+        let identifier = self.current().ok_or(ErrorKind::ExpectedExpression)?;
 
         self.advance();
         let mut parameters = Vec::new();
@@ -210,7 +214,7 @@ impl Parser {
             TokenKind::Colon,
             TokenKind::Hash
         ) {
-            let operator = self.previous().ok_or(Error::UnexpectedEndOfFile)?;
+            let operator = self.previous().ok_or(ErrorKind::UnexpectedEndOfFile)?;
             let rhs = Box::new(self.parse_unary()?);
             expression = Expression::Binary {
                 lhs: Box::new(expression),
@@ -222,7 +226,7 @@ impl Parser {
     }
 
     fn parse_unary(&mut self) -> Result<Expression> {
-        let token = self.current().ok_or(Error::UnexpectedEndOfFile)?;
+        let token = self.current().ok_or(ErrorKind::UnexpectedEndOfFile)?;
 
         match token.kind {
             TokenKind::Bang | TokenKind::Minus => {
@@ -237,7 +241,7 @@ impl Parser {
     }
 
     fn parse_primary(&mut self) -> Result<Expression> {
-        let token = self.current().ok_or(Error::UnexpectedEndOfFile)?;
+        let token = self.current().ok_or(ErrorKind::UnexpectedEndOfFile)?;
 
         match token.kind {
             TokenKind::True
@@ -257,11 +261,11 @@ impl Parser {
                 self.advance();
                 let expression = self.parse_expression()?;
                 if !try_consume_any!(*self, TokenKind::RightParenthesis) {
-                    return Err(Error::MissingClosingParenthesis);
+                    return Err(Error::new(ErrorKind::MissingClosingParenthesis, token.location, "Consider inserting a ')' after this expression."));
                 }
                 Ok(expression)
             }
-            _ => Err(Error::ExpectedExpression),
+            _ => Err(Error::new(ErrorKind::ExpectedExpression, token.location, "This is not valid syntax.")),
         }
     }
 }
