@@ -1,6 +1,7 @@
 use super::enums::Expression;
 use crate::error::{Error, ErrorKind, Result};
 use crate::lexer::enums::{Token, TokenKind};
+use crate::parser::precedence::Precedence;
 
 macro_rules! try_consume_any {
     ($self:expr, $($token_type:expr),+) => {{
@@ -94,7 +95,11 @@ impl Parser {
                 }
                 Ok(Expression::Declaration { name, types })
             }
-            _ => Err(Error::new(ErrorKind::ExpectedExpression, name.location, "This should be an identifier")),
+            _ => Err(Error::new(
+                ErrorKind::ExpectedExpression,
+                name.location,
+                "This should be an identifier",
+            )),
         }
     }
 
@@ -190,39 +195,55 @@ impl Parser {
     }
 
     fn parse_binary(&mut self) -> Result<Expression> {
-        let mut expression = self.parse_unary()?;
-        if self.is_eof() {
-            return Ok(expression);
-        }
-        while try_consume_any!(
-            *self,
-            TokenKind::Ampersand,
-            TokenKind::Caret,
-            TokenKind::Pipe,
-            TokenKind::Plus,
-            TokenKind::Minus,
-            TokenKind::Star,
-            TokenKind::Slash,
-            TokenKind::Percent,
-            TokenKind::Equal,
-            TokenKind::EqualEqual,
-            TokenKind::Less,
-            TokenKind::LessEqual,
-            TokenKind::Greater,
-            TokenKind::GreaterEqual,
-            TokenKind::At,
-            TokenKind::Colon,
-            TokenKind::Hash
-        ) {
-            let operator = self.previous().ok_or(ErrorKind::UnexpectedEndOfFile)?;
-            let rhs = Box::new(self.parse_unary()?);
-            expression = Expression::Binary {
-                lhs: Box::new(expression),
-                operator,
-                rhs,
+        self.parse_binary_with_precedence(Precedence::None)
+    }
+
+    fn parse_binary_with_precedence(&mut self, precedence: Precedence) -> Result<Expression> {
+        let mut left = self.parse_unary()?;
+        while !self.is_eof() {
+            let current_token = if let Some(c) = self.current() {
+                c
+            } else {
+                break;
+            };
+
+            let current_precedence = Precedence::from(current_token.kind);
+            if current_precedence <= precedence {
+                break;
             }
+
+            if !try_consume_any!(
+                *self,
+                TokenKind::Ampersand,
+                TokenKind::Caret,
+                TokenKind::Pipe,
+                TokenKind::Plus,
+                TokenKind::Minus,
+                TokenKind::Star,
+                TokenKind::Slash,
+                TokenKind::Percent,
+                TokenKind::Equal,
+                TokenKind::EqualEqual,
+                TokenKind::Less,
+                TokenKind::LessEqual,
+                TokenKind::Greater,
+                TokenKind::GreaterEqual,
+                TokenKind::At,
+                TokenKind::Colon,
+                TokenKind::Hash
+            ) {
+                break;
+            }
+            let operator = self.previous().ok_or(ErrorKind::UnexpectedEndOfFile)?;
+            let right = self.parse_binary_with_precedence(current_precedence)?;
+
+            left = Expression::Binary {
+                lhs: Box::new(left),
+                operator,
+                rhs: Box::new(right),
+            };
         }
-        Ok(expression)
+        Ok(left)
     }
 
     fn parse_unary(&mut self) -> Result<Expression> {
@@ -261,11 +282,19 @@ impl Parser {
                 self.advance();
                 let expression = self.parse_expression()?;
                 if !try_consume_any!(*self, TokenKind::RightParenthesis) {
-                    return Err(Error::new(ErrorKind::MissingClosingParenthesis, token.location, "Consider inserting a ')' after this expression."));
+                    return Err(Error::new(
+                        ErrorKind::MissingClosingParenthesis,
+                        token.location,
+                        "Consider inserting a ')' after this expression.",
+                    ));
                 }
                 Ok(expression)
             }
-            _ => Err(Error::new(ErrorKind::ExpectedExpression, token.location, "This is not valid syntax.")),
+            _ => Err(Error::new(
+                ErrorKind::ExpectedExpression,
+                token.location,
+                "This is not valid syntax.",
+            )),
         }
     }
 }
