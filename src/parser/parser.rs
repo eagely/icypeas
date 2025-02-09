@@ -1,6 +1,7 @@
 use super::enums::Expression;
 use crate::error::{Error, ErrorKind, Result};
-use crate::lexer::enums::{Token, TokenKind};
+use crate::lexer::enums::{Location, Token, TokenKind};
+use crate::parser::enums::ExpressionKind;
 use crate::parser::precedence::Precedence;
 
 macro_rules! try_consume_any {
@@ -80,6 +81,7 @@ impl Parser {
         }
 
         let name = self.current().ok_or(ErrorKind::UnexpectedEndOfFile)?;
+        let location = name.location.clone();
 
         match name.kind {
             TokenKind::Identifier => {
@@ -93,12 +95,15 @@ impl Parser {
                     self.advance();
                     types.push(token);
                 }
-                Ok(Expression::Declaration { name, types })
+                Ok(Expression::new(
+                    ExpressionKind::Declaration { name, types },
+                    location,
+                ))
             }
-            _ => Err(Error::new(
+            _ => Err(Error::with_help(
                 ErrorKind::ExpectedExpression,
                 name.location,
-                "This should be an identifier",
+                "This should be an identifier.",
             )),
         }
     }
@@ -122,10 +127,15 @@ impl Parser {
 
         if self.current_is(TokenKind::Dollar) {
             try_consume_any!(*self, TokenKind::Dollar);
-            Ok(Expression::Lambda {
-                parameters,
-                body: Box::new(self.parse_expression()?),
-            })
+            let body = self.parse_expression()?;
+            let location = body.location.clone();
+            Ok(Expression::new(
+                ExpressionKind::Lambda {
+                    parameters,
+                    body: Box::new(body),
+                },
+                location,
+            ))
         } else {
             self.parse_if()
         }
@@ -157,11 +167,16 @@ impl Parser {
 
         try_consume_any!(*self, TokenKind::Equal);
 
-        Ok(Expression::Assignment {
-            identifier,
-            parameters,
-            expression: Box::new(self.parse_expression()?),
-        })
+        let expr = self.parse_expression()?;
+        let location = expr.location.clone();
+        Ok(Expression::new(
+            ExpressionKind::Assignment {
+                identifier,
+                parameters,
+                expression: Box::new(expr),
+            },
+            location,
+        ))
     }
 
     fn parse_if(&mut self) -> Result<Expression> {
@@ -169,14 +184,19 @@ impl Parser {
             return self.parse_binary();
         }
 
-        let mut branches = Vec::new();
         try_consume_any!(*self, TokenKind::If);
+        let condition = Box::new(self.parse_expression()?);
+        let body = Box::new(self.parse_expression()?);
+        let location = condition.location.clone();
+
+        let mut branches = vec![(condition, body)];
         loop {
             try_consume_any!(*self, TokenKind::Elif);
-            branches.push((
-                Box::new(self.parse_expression()?),
-                Box::new(self.parse_expression()?),
-            ));
+            let condition = self.parse_expression()?;
+            let body = self.parse_expression()?;
+
+            branches.push((Box::new(condition), Box::new(body)));
+
             if !self.current_is(TokenKind::Elif) {
                 break;
             }
@@ -188,10 +208,13 @@ impl Parser {
             otherwise = Some(Box::new(self.parse_expression()?));
         }
 
-        Ok(Expression::If {
-            branches,
-            otherwise,
-        })
+        Ok(Expression::new(
+            ExpressionKind::If {
+                branches,
+                otherwise,
+            },
+            location,
+        ))
     }
 
     fn parse_binary(&mut self) -> Result<Expression> {
@@ -199,11 +222,9 @@ impl Parser {
     }
 
     fn parse_binary_with_precedence(&mut self, precedence: Precedence) -> Result<Expression> {
-        let mut left = self.parse_unary()?;
+        let mut lhs = self.parse_unary()?;
         while !self.is_eof() {
-            let current_token = if let Some(c) = self.current() {
-                c
-            } else {
+            let Some(current_token) = self.current() else {
                 break;
             };
 
@@ -235,27 +256,35 @@ impl Parser {
                 break;
             }
             let operator = self.previous().ok_or(ErrorKind::UnexpectedEndOfFile)?;
-            let right = self.parse_binary_with_precedence(current_precedence)?;
+            let location = operator.location.clone();
+            let rhs = self.parse_binary_with_precedence(current_precedence)?;
 
-            left = Expression::Binary {
-                lhs: Box::new(left),
-                operator,
-                rhs: Box::new(right),
-            };
+            lhs = Expression::new(
+                ExpressionKind::Binary {
+                    lhs: Box::new(lhs),
+                    operator,
+                    rhs: Box::new(rhs),
+                },
+                location,
+            );
         }
-        Ok(left)
+        Ok(lhs)
     }
 
     fn parse_unary(&mut self) -> Result<Expression> {
         let token = self.current().ok_or(ErrorKind::UnexpectedEndOfFile)?;
+        let location = token.location.clone();
 
         match token.kind {
             TokenKind::Bang | TokenKind::Minus => {
                 self.advance();
-                Ok(Expression::Unary {
-                    operator: token,
-                    expression: Box::new(self.parse_primary()?),
-                })
+                Ok(Expression::new(
+                    ExpressionKind::Unary {
+                        operator: token,
+                        expression: Box::new(self.parse_primary()?),
+                    },
+                    location,
+                ))
             }
             _ => self.parse_primary(),
         }
@@ -263,26 +292,31 @@ impl Parser {
 
     fn parse_primary(&mut self) -> Result<Expression> {
         let token = self.current().ok_or(ErrorKind::UnexpectedEndOfFile)?;
+        let location = token.location.clone();
 
         match token.kind {
             TokenKind::True
             | TokenKind::False
             | TokenKind::Null
-            | TokenKind::Number
+            | TokenKind::Float
+            | TokenKind::Integer
             | TokenKind::String
             | TokenKind::Underscore => {
                 self.advance();
-                Ok(Expression::Literal { token })
+                Ok(Expression::new(ExpressionKind::Literal { token }, location))
             }
             TokenKind::Identifier => {
                 self.advance();
-                Ok(Expression::Identifier { token })
+                Ok(Expression::new(
+                    ExpressionKind::Identifier { token },
+                    location,
+                ))
             }
             TokenKind::LeftParenthesis => {
                 self.advance();
                 let expression = self.parse_expression()?;
                 if !try_consume_any!(*self, TokenKind::RightParenthesis) {
-                    return Err(Error::new(
+                    return Err(Error::with_help(
                         ErrorKind::MissingClosingParenthesis,
                         token.location,
                         "Consider inserting a ')' after this expression.",
@@ -290,7 +324,7 @@ impl Parser {
                 }
                 Ok(expression)
             }
-            _ => Err(Error::new(
+            _ => Err(Error::with_help(
                 ErrorKind::ExpectedExpression,
                 token.location,
                 "This is not valid syntax.",

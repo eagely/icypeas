@@ -1,4 +1,4 @@
-use std::fmt::{Debug, Display, Formatter, Result};
+use std::fmt::{Debug, Display, Formatter};
 
 #[derive(Clone, PartialEq, Eq)]
 pub struct Location {
@@ -6,11 +6,35 @@ pub struct Location {
     pub column: usize,
 }
 
-#[derive(Clone, PartialEq, Eq)]
+impl Debug for Location {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        write!(f, "{:?}:{:?}", self.row + 1, self.column + 1)
+    }
+}
+
+impl Display for Location {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        write!(f, "{}:{}", self.row + 1, self.column + 1)
+    }
+}
+
+#[derive(Clone, PartialEq)]
 pub struct Token {
     pub kind: TokenKind,
     pub value: TokenValue,
     pub location: Location,
+}
+
+impl Debug for Token {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}, {:?}, {:?}", self.kind, self.value, self.location)
+    }
+}
+
+impl Display for Token {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}, {:?}, {:?}", self.kind, self.value, self.location)
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -59,42 +83,21 @@ pub enum TokenKind {
     False,
     Null,
     Identifier,
-    Number,
+    Float,
+    Integer,
     String,
     Unknown,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum TokenValue {
     Identifier(String),
-    Number(i128),
+    Boolean(bool),
+    Float(f64),
+    Integer(i128),
     String(String),
     Unknown(char),
     None,
-}
-
-impl Debug for Location {
-    fn fmt(&self, f: &mut Formatter) -> Result {
-        write!(f, "{:?}:{:?}", self.row + 1, self.column + 1)
-    }
-}
-
-impl Display for Location {
-    fn fmt(&self, f: &mut Formatter) -> Result {
-        write!(f, "{}:{}", self.row + 1, self.column + 1)
-    }
-}
-
-impl Debug for Token {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(f, "{:?}, {:?}, {:?}", self.kind, self.value, self.location)
-    }
-}
-
-impl Display for Token {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(f, "{:?}, {:?}, {:?}", self.kind, self.value, self.location)
-    }
 }
 
 impl TokenKind {
@@ -113,7 +116,7 @@ impl TokenKind {
             | TokenKind::False
             | TokenKind::Null
             | TokenKind::Identifier
-            | TokenKind::Number
+            | TokenKind::Integer
             | TokenKind::String => true,
             _ => false,
         }

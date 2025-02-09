@@ -9,8 +9,8 @@ pub struct Lexer {
 }
 
 impl Lexer {
-    pub fn new(source: &str) -> Lexer {
-        Lexer {
+    pub fn new(source: &str) -> Self {
+        Self {
             source: source.chars().collect(),
             index: 0,
             row: 0,
@@ -37,7 +37,7 @@ impl Lexer {
     }
 
     fn consume(&mut self, c: char) -> bool {
-        if matches!(self.next(), Some(cc) if cc == c) {
+        if matches!(self.next(1), Some(cc) if cc == c) {
             self.advance();
             true
         } else {
@@ -49,8 +49,8 @@ impl Lexer {
         self.source.get(self.index).copied()
     }
 
-    fn next(&self) -> Option<char> {
-        self.source.get(self.index + 1).copied()
+    fn next(&self, n: usize) -> Option<char> {
+        self.source.get(self.index + n).copied()
     }
 
     fn advance(&mut self) {
@@ -135,7 +135,7 @@ impl Lexer {
     fn consume_identifier(&mut self) -> Result<(TokenKind, TokenValue)> {
         let start = self.index;
 
-        while let Some(c) = self.next() {
+        while let Some(c) = self.next(1) {
             if !c.is_alphanumeric() && c != '_' {
                 break;
             }
@@ -144,51 +144,73 @@ impl Lexer {
 
         let identifier: String = self.source[start..=self.index].iter().collect();
 
-        Ok((
-            match identifier.as_str() {
-                "if" => TokenKind::If,
-                "elif" => TokenKind::Elif,
-                "else" => TokenKind::Else,
-                "for" => TokenKind::For,
-                "while" => TokenKind::While,
-                "do" => TokenKind::Do,
-                "loop" => TokenKind::Loop,
-                "fn" => TokenKind::Fn,
-                "return" => TokenKind::Return,
-                "true" => TokenKind::True,
-                "false" => TokenKind::False,
-                "null" => TokenKind::Null,
-                _ => return Ok((TokenKind::Identifier, TokenValue::Identifier(identifier))),
-            },
-            TokenValue::None,
-        ))
+        Ok(match identifier.as_str() {
+            "if" => (TokenKind::If, TokenValue::None),
+            "elif" => (TokenKind::Elif, TokenValue::None),
+            "else" => (TokenKind::Else, TokenValue::None),
+            "for" => (TokenKind::For, TokenValue::None),
+            "while" => (TokenKind::While, TokenValue::None),
+            "do" => (TokenKind::Do, TokenValue::None),
+            "loop" => (TokenKind::Loop, TokenValue::None),
+            "fn" => (TokenKind::Fn, TokenValue::None),
+            "return" => (TokenKind::Return, TokenValue::None),
+            "true" => (TokenKind::True, TokenValue::Boolean(true)),
+            "false" => (TokenKind::False, TokenValue::Boolean(false)),
+            "null" => (TokenKind::Null, TokenValue::None),
+            _ => return Ok((TokenKind::Identifier, TokenValue::Identifier(identifier))),
+        })
     }
 
     fn consume_number(&mut self) -> Result<(TokenKind, TokenValue)> {
         let start = self.index;
 
-        while let Some(c) = self.next() {
+        while let Some(c) = self.next(1) {
             if !c.is_ascii_digit() {
                 break;
             }
             self.advance();
         }
 
+        if self.consume('.') {
+            match self.next(2) {
+                Some(c) if c.is_ascii_digit() => {
+                    while let Some(c) = self.next(1) {
+                        if !c.is_ascii_digit() {
+                            break;
+                        }
+                        self.advance();
+                    }
+
+                    let number = self.source[start..=self.index].iter().collect::<String>();
+
+                    return Ok((
+                        TokenKind::Float,
+                        TokenValue::Float(
+                            number
+                                .parse()
+                                .map_err(|_| Error::new(ErrorKind::NotANumber, self.location()))?,
+                        ),
+                    ));
+                }
+                _ => (),
+            };
+        }
+
         let number = self.source[start..=self.index].iter().collect::<String>();
 
         Ok((
-            TokenKind::Number,
-            TokenValue::Number(
+            TokenKind::Integer,
+            TokenValue::Integer(
                 number
                     .parse()
-                    .map_err(|_| Error::new(ErrorKind::NotANumber, self.location(), "This is not a valid number"))?,
+                    .map_err(|_| Error::new(ErrorKind::NotANumber, self.location()))?,
             ),
         ))
     }
 
     fn consume_string(&mut self) -> Result<(TokenKind, TokenValue)> {
         let start = self.index + 1;
-        while let Some(c) = self.next() {
+        while let Some(c) = self.next(1) {
             self.advance();
             if c == '"' {
                 return Ok((
@@ -197,10 +219,10 @@ impl Lexer {
                 ));
             }
         }
-        Err(Error::new(
+        Err(Error::with_help(
             ErrorKind::UnterminatedString,
             self.location(),
-            "Consider inserting a \" after this string"
+            "Consider inserting a \" after this string",
         ))
     }
 }

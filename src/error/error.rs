@@ -6,9 +6,11 @@ use crate::lexer::enums::Location;
 pub enum ErrorKind {
     ExpectedExpression,
     InvalidIdentifier,
+    InvalidToken,
     MissingClosingParenthesis,
     NotANumber,
     UnexpectedEndOfFile,
+    UnsupportedExpression,
     UnterminatedString,
 }
 
@@ -22,12 +24,14 @@ pub struct Error {
 impl Display for ErrorKind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let message = match self {
-            ErrorKind::ExpectedExpression => "Expected expression",
-            ErrorKind::InvalidIdentifier => "Invalid identifier",
-            ErrorKind::MissingClosingParenthesis => "Missing closing parenthesis",
-            ErrorKind::NotANumber => "Not a number",
-            ErrorKind::UnexpectedEndOfFile => "Unexpected end of file",
-            ErrorKind::UnterminatedString => "Unterminated string",
+            Self::ExpectedExpression => "Expected expression",
+            Self::InvalidIdentifier => "Invalid identifier",
+            Self::InvalidToken => "Invalid token",
+            Self::MissingClosingParenthesis => "Missing closing parenthesis",
+            Self::NotANumber => "Not a number",
+            Self::UnexpectedEndOfFile => "Unexpected end of file",
+            Self::UnsupportedExpression => "Unsupported Expression",
+            Self::UnterminatedString => "Unterminated string",
         };
         write!(f, "{}", message)
     }
@@ -49,19 +53,19 @@ impl Display for Error {
 }
 
 impl Error {
-    pub fn new(kind: ErrorKind, location: Location, help: impl Into<String>) -> Self {
-        Self {
-            kind,
-            location: Some(location),
-            help: Some(help.into()),
-        }
-    }
-
-    pub fn new_without_help(kind: ErrorKind, location: Location) -> Self {
+    pub fn new(kind: ErrorKind, location: Location) -> Self {
         Self {
             kind,
             location: Some(location),
             help: None,
+        }
+    }
+
+    pub fn with_help(kind: ErrorKind, location: Location, help: impl Into<String>) -> Self {
+        Self {
+            kind,
+            location: Some(location),
+            help: Some(help.into()),
         }
     }
 }

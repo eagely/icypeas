@@ -1,7 +1,7 @@
-use crate::lexer::enums::Token;
+use crate::lexer::enums::{Location, Token};
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum Expression {
+#[derive(Clone, Debug, PartialEq)]
+pub enum ExpressionKind {
     Assignment {
         identifier: Token,
         parameters: Vec<Token>,
@@ -37,4 +37,16 @@ pub enum Expression {
     Print {
         expression: Box<Expression>,
     },
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct Expression {
+    pub kind: ExpressionKind,
+    pub location: Location,
+}
+
+impl Expression {
+    pub fn new(kind: ExpressionKind, location: Location) -> Self {
+        Self { kind, location }
+    }
 }
