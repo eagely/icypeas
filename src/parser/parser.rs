@@ -1,8 +1,9 @@
 use super::enums::Expression;
 use crate::error::{Error, ErrorKind, Result};
-use crate::lexer::enums::{Location, Token, TokenKind};
+use crate::lexer::enums::{Token, TokenKind, TokenValue};
 use crate::parser::enums::ExpressionKind;
 use crate::parser::precedence::Precedence;
+use std::rc::Rc;
 
 macro_rules! try_consume_any {
     ($self:expr, $($token_type:expr),+) => {{
@@ -81,7 +82,7 @@ impl Parser {
         }
 
         let name = self.current().ok_or(ErrorKind::UnexpectedEndOfFile)?;
-        let location = name.location.clone();
+        let location = Rc::clone(&name.location);
 
         match name.kind {
             TokenKind::Identifier => {
@@ -102,7 +103,7 @@ impl Parser {
             }
             _ => Err(Error::with_help(
                 ErrorKind::ExpectedExpression,
-                name.location,
+                location,
                 "This should be an identifier.",
             )),
         }
@@ -128,7 +129,7 @@ impl Parser {
         if self.current_is(TokenKind::Dollar) {
             try_consume_any!(*self, TokenKind::Dollar);
             let body = self.parse_expression()?;
-            let location = body.location.clone();
+            let location = Rc::clone(&body.location);
             Ok(Expression::new(
                 ExpressionKind::Lambda {
                     parameters,
@@ -168,7 +169,7 @@ impl Parser {
         try_consume_any!(*self, TokenKind::Equal);
 
         let expr = self.parse_expression()?;
-        let location = expr.location.clone();
+        let location = Rc::clone(&expr.location);
         Ok(Expression::new(
             ExpressionKind::Assignment {
                 identifier,
@@ -187,10 +188,10 @@ impl Parser {
         try_consume_any!(*self, TokenKind::If);
         let condition = Box::new(self.parse_expression()?);
         let body = Box::new(self.parse_expression()?);
-        let location = condition.location.clone();
+        let location = Rc::clone(&condition.location);
 
         let mut branches = vec![(condition, body)];
-        loop {
+        while self.current_is(TokenKind::Elif) {
             try_consume_any!(*self, TokenKind::Elif);
             let condition = self.parse_expression()?;
             let body = self.parse_expression()?;
@@ -256,7 +257,7 @@ impl Parser {
                 break;
             }
             let operator = self.previous().ok_or(ErrorKind::UnexpectedEndOfFile)?;
-            let location = operator.location.clone();
+            let location = Rc::clone(&operator.location);
             let rhs = self.parse_binary_with_precedence(current_precedence)?;
 
             lhs = Expression::new(
@@ -273,7 +274,7 @@ impl Parser {
 
     fn parse_unary(&mut self) -> Result<Expression> {
         let token = self.current().ok_or(ErrorKind::UnexpectedEndOfFile)?;
-        let location = token.location.clone();
+        let location = Rc::clone(&token.location);
 
         match token.kind {
             TokenKind::Bang | TokenKind::Minus => {
@@ -292,7 +293,7 @@ impl Parser {
 
     fn parse_primary(&mut self) -> Result<Expression> {
         let token = self.current().ok_or(ErrorKind::UnexpectedEndOfFile)?;
-        let location = token.location.clone();
+        let location = Rc::clone(&token.location);
 
         match token.kind {
             TokenKind::True
@@ -303,14 +304,34 @@ impl Parser {
             | TokenKind::String
             | TokenKind::Underscore => {
                 self.advance();
-                Ok(Expression::new(ExpressionKind::Literal { token }, location))
+                Ok(Expression::new(
+                    ExpressionKind::Literal { token },
+                    Rc::clone(&location),
+                ))
             }
             TokenKind::Identifier => {
                 self.advance();
-                Ok(Expression::new(
-                    ExpressionKind::Identifier { token },
-                    location,
-                ))
+
+                let mut is_print = false;
+                if let TokenValue::Identifier(name) = &token.value {
+                    if name == "print" {
+                        is_print = true;
+                    }
+                }
+
+                let identifier =
+                    Expression::new(ExpressionKind::Identifier { token }, Rc::clone(&location));
+
+                Ok(if is_print {
+                    Expression::new(
+                        ExpressionKind::Print {
+                            expression: Box::new(identifier),
+                        },
+                        Rc::clone(&location),
+                    )
+                } else {
+                    identifier
+                })
             }
             TokenKind::LeftParenthesis => {
                 self.advance();

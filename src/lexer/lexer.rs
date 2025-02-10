@@ -1,5 +1,6 @@
 use super::enums::{Location, Token, TokenKind, TokenValue};
 use crate::error::{Error, ErrorKind, Result};
+use std::rc::Rc;
 
 pub struct Lexer {
     source: Vec<char>,
@@ -57,11 +58,11 @@ impl Lexer {
         self.index += 1;
     }
 
-    fn location(&self) -> Location {
-        Location {
+    fn location(&self) -> Rc<Location> {
+        Rc::new(Location {
             row: self.row,
             column: self.index.saturating_sub(self.bol),
-        }
+        })
     }
 
     fn consume_token(&mut self, c: char) -> Result<(TokenKind, TokenValue)> {
@@ -203,7 +204,7 @@ impl Lexer {
             TokenValue::Integer(
                 number
                     .parse()
-                    .map_err(|_| Error::new(ErrorKind::NotANumber, self.location()))?,
+                    .map_err(|_| Error::new(ErrorKind::NotANumber, Rc::clone(&self.location())))?,
             ),
         ))
     }

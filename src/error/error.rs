@@ -1,10 +1,10 @@
-use std::fmt::Display;
-
 use crate::lexer::enums::Location;
+use std::{fmt::Display, rc::Rc};
 
 #[derive(Debug)]
 pub enum ErrorKind {
     ExpectedExpression,
+    IncompleteIf,
     InvalidIdentifier,
     InvalidToken,
     MissingClosingParenthesis,
@@ -17,7 +17,7 @@ pub enum ErrorKind {
 #[derive(Debug)]
 pub struct Error {
     pub kind: ErrorKind,
-    pub location: Option<Location>,
+    pub location: Option<Rc<Location>>,
     pub help: Option<String>,
 }
 
@@ -25,6 +25,7 @@ impl Display for ErrorKind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let message = match self {
             Self::ExpectedExpression => "Expected expression",
+            Self::IncompleteIf => "Incomplete if",
             Self::InvalidIdentifier => "Invalid identifier",
             Self::InvalidToken => "Invalid token",
             Self::MissingClosingParenthesis => "Missing closing parenthesis",
@@ -53,7 +54,7 @@ impl Display for Error {
 }
 
 impl Error {
-    pub fn new(kind: ErrorKind, location: Location) -> Self {
+    pub fn new(kind: ErrorKind, location: Rc<Location>) -> Self {
         Self {
             kind,
             location: Some(location),
@@ -61,7 +62,7 @@ impl Error {
         }
     }
 
-    pub fn with_help(kind: ErrorKind, location: Location, help: impl Into<String>) -> Self {
+    pub fn with_help(kind: ErrorKind, location: Rc<Location>, help: impl Into<String>) -> Self {
         Self {
             kind,
             location: Some(location),

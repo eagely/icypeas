@@ -1,4 +1,4 @@
-use std::fmt::{Debug, Display, Formatter};
+use std::{fmt::{Debug, Display, Formatter}, rc::Rc};
 
 #[derive(Clone, PartialEq, Eq)]
 pub struct Location {
@@ -22,7 +22,7 @@ impl Display for Location {
 pub struct Token {
     pub kind: TokenKind,
     pub value: TokenValue,
-    pub location: Location,
+    pub location: Rc<Location>,
 }
 
 impl Debug for Token {
