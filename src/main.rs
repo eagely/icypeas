@@ -9,7 +9,13 @@ use parser::parser::Parser;
 use std::{cell::RefCell, rc::Rc};
 
 fn main() {
-    let source = r#"if false "then" else "else"; if true "then" else "else""#;
+    let source = r#"
+        x : hi;
+        y : hello;
+        x a = y a;
+        y b = print b;
+        x "Hello";
+    "#;
     println!("Source: {}", source);
 
     let mut lexer = Lexer::new(source);
@@ -38,9 +44,9 @@ fn main() {
 
     let environment = Rc::new(RefCell::new(Environment::new()));
     for expr in ast {
-        let interpreter = Interpreter::new(expr, Rc::clone(&environment));
-        match interpreter.interpret() {
-            Ok(result) => println!("{}", result),
+        let mut interpreter = Interpreter::new(Rc::clone(&environment));
+        match interpreter.interpret(&expr) {
+            Ok(_) => (),
             Err(e) => {
                 eprintln!("Interpreter error: {}", e);
                 return;

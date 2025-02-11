@@ -4,5 +4,6 @@ lambda = { IDENTIFIER } "$" expression | assignment ;
 assignment = IDENTIFIER { primary } "=" expression | if ;
 if = "if" expression expression { "elif" expression expression } "else" expression | binary ;
 binary = unary { ( IDENTIFIER | OPERATOR ) unary } ;
-unary = ( "!" | "-" ) unary | primary ;
+unary = ( "!" | "-" ) unary | call;
+call = IDENTIFIER { primary } ;
 primary = "true" | "false" | "null" | "(" expression ")" | NUMBER | STRING | IDENTIFIER ;

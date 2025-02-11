@@ -1,6 +1,6 @@
 use super::enums::Expression;
 use crate::error::{Error, ErrorKind, Result};
-use crate::lexer::enums::{Token, TokenKind, TokenValue};
+use crate::lexer::enums::{Token, TokenKind};
 use crate::parser::enums::ExpressionKind;
 use crate::parser::precedence::Precedence;
 use std::rc::Rc;
@@ -52,8 +52,8 @@ impl Parser {
         self.tokens.get(self.index + n).cloned()
     }
 
-    fn previous(&self) -> Option<Token> {
-        self.tokens.get(self.index - 1).cloned()
+    fn previous(&self, n: usize) -> Option<Token> {
+        self.tokens.get(self.index - n).cloned()
     }
 
     fn advance(&mut self) {
@@ -68,12 +68,18 @@ impl Parser {
         self.next(n).map_or(false, |t| t.kind == kind)
     }
 
+    fn previous_is(&self, n: usize, kind: TokenKind) -> bool {
+        self.previous(n).map_or(false, |t| t.kind == kind)
+    }
+
     fn is_eof(&self) -> bool {
         self.index >= self.tokens.len()
     }
 
     fn parse_expression(&mut self) -> Result<Expression> {
-        self.parse_declaration()
+        let expr = self.parse_declaration()?;
+
+        Ok(expr)
     }
 
     fn parse_declaration(&mut self) -> Result<Expression> {
@@ -234,6 +240,10 @@ impl Parser {
                 break;
             }
 
+            if try_consume_any!(*self, TokenKind::Semicolon, TokenKind::Newline) {
+                break;
+            }
+
             if !try_consume_any!(
                 *self,
                 TokenKind::Ampersand,
@@ -256,7 +266,7 @@ impl Parser {
             ) {
                 break;
             }
-            let operator = self.previous().ok_or(ErrorKind::UnexpectedEndOfFile)?;
+            let operator = self.previous(1).ok_or(ErrorKind::UnexpectedEndOfFile)?;
             let location = Rc::clone(&operator.location);
             let rhs = self.parse_binary_with_precedence(current_precedence)?;
 
@@ -287,8 +297,33 @@ impl Parser {
                     location,
                 ))
             }
-            _ => self.parse_primary(),
+            _ => self.parse_call(),
         }
+    }
+
+    fn parse_call(&mut self) -> Result<Expression> {
+        let mut expr = self.parse_primary()?;
+
+        if self.previous_is(1, TokenKind::Identifier) {
+            let mut arguments = Vec::new();
+            while !self.is_eof()
+                && !self.current_is(TokenKind::Semicolon)
+                && !self.current_is(TokenKind::Newline)
+            {
+                arguments.push(self.parse_primary()?);
+            }
+
+            let location = Rc::clone(&expr.location);
+            expr = Expression::new(
+                ExpressionKind::Call {
+                    function: Box::new(expr),
+                    arguments,
+                },
+                location,
+            );
+        }
+
+        Ok(expr)
     }
 
     fn parse_primary(&mut self) -> Result<Expression> {
@@ -312,26 +347,10 @@ impl Parser {
             TokenKind::Identifier => {
                 self.advance();
 
-                let mut is_print = false;
-                if let TokenValue::Identifier(name) = &token.value {
-                    if name == "print" {
-                        is_print = true;
-                    }
-                }
-
-                let identifier =
-                    Expression::new(ExpressionKind::Identifier { token }, Rc::clone(&location));
-
-                Ok(if is_print {
-                    Expression::new(
-                        ExpressionKind::Print {
-                            expression: Box::new(identifier),
-                        },
-                        Rc::clone(&location),
-                    )
-                } else {
-                    identifier
-                })
+                Ok(Expression::new(
+                    ExpressionKind::Identifier { token },
+                    Rc::clone(&location),
+                ))
             }
             TokenKind::LeftParenthesis => {
                 self.advance();

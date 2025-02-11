@@ -18,6 +18,10 @@ pub enum ExpressionKind {
         operator: Token,
         rhs: Box<Expression>,
     },
+    Call {
+        function: Box<Expression>,
+        arguments: Vec<Expression>,
+    },
     Declaration {
         name: Token,
         types: Vec<Token>,
@@ -35,9 +39,6 @@ pub enum ExpressionKind {
     },
     Literal {
         token: Token,
-    },
-    Print {
-        expression: Box<Expression>,
     },
 }
 

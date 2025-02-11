@@ -5,11 +5,14 @@ use std::{fmt::Display, rc::Rc};
 pub enum ErrorKind {
     ExpectedExpression,
     IncompleteIf,
+    InvalidArguments,
     InvalidIdentifier,
     InvalidToken,
     MissingClosingParenthesis,
     NotANumber,
+    UndeclaredFunction,
     UnexpectedEndOfFile,
+    UnimplementedFunction,
     UnsupportedExpression,
     UnterminatedString,
 }
@@ -26,11 +29,14 @@ impl Display for ErrorKind {
         let message = match self {
             Self::ExpectedExpression => "Expected expression",
             Self::IncompleteIf => "Incomplete if",
+            Self::InvalidArguments => "Invalid arguments",
             Self::InvalidIdentifier => "Invalid identifier",
             Self::InvalidToken => "Invalid token",
             Self::MissingClosingParenthesis => "Missing closing parenthesis",
             Self::NotANumber => "Not a number",
+            Self::UndeclaredFunction => "Undeclared function",
             Self::UnexpectedEndOfFile => "Unexpected end of file",
+            Self::UnimplementedFunction => "Unimplemented function",
             Self::UnsupportedExpression => "Unsupported Expression",
             Self::UnterminatedString => "Unterminated string",
         };
