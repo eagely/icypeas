@@ -65,7 +65,11 @@ impl Interpreter {
             } => {
                 todo!();
             }
-            ExpressionKind::Binary { lhs, operator, rhs } => {
+            ExpressionKind::Binary {
+                left,
+                operator,
+                right,
+            } => {
                 todo!();
             }
             ExpressionKind::Call {
@@ -90,19 +94,15 @@ impl Interpreter {
                     ));
                 };
 
-                if function_name == "print" {
+                let builtin_function_name = self.environment.borrow().get_builtin(&function_name);
+                if let Some(builtin) = builtin_function_name {
                     let mut evaluated_arguments = Vec::new();
                     for arg in arguments {
                         evaluated_arguments.push(self.evaluate(arg)?);
                     }
-
-                    for arg in &evaluated_arguments {
-                        println!("{:?}", arg);
-                    }
-
-                    return Ok(Value::None);
+                    return builtin(evaluated_arguments, Rc::clone(&expression.location));
                 }
-                
+
                 let function =
                     self.environment
                         .borrow()

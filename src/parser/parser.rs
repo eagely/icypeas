@@ -229,7 +229,7 @@ impl Parser {
     }
 
     fn parse_binary_with_precedence(&mut self, precedence: Precedence) -> Result<Expression> {
-        let mut lhs = self.parse_unary()?;
+        let mut left = self.parse_unary()?;
         while !self.is_eof() {
             let Some(current_token) = self.current() else {
                 break;
@@ -268,18 +268,18 @@ impl Parser {
             }
             let operator = self.previous(1).ok_or(ErrorKind::UnexpectedEndOfFile)?;
             let location = Rc::clone(&operator.location);
-            let rhs = self.parse_binary_with_precedence(current_precedence)?;
+            let right = self.parse_binary_with_precedence(current_precedence)?;
 
-            lhs = Expression::new(
+            left = Expression::new(
                 ExpressionKind::Binary {
-                    lhs: Box::new(lhs),
+                    left: Box::new(left),
                     operator,
-                    rhs: Box::new(rhs),
+                    right: Box::new(right),
                 },
                 location,
             );
         }
-        Ok(lhs)
+        Ok(left)
     }
 
     fn parse_unary(&mut self) -> Result<Expression> {

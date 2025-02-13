@@ -14,9 +14,9 @@ pub enum ExpressionKind {
         expression: Box<Expression>,
     },
     Binary {
-        lhs: Box<Expression>,
+        left: Box<Expression>,
         operator: Token,
-        rhs: Box<Expression>,
+        right: Box<Expression>,
     },
     Call {
         function: Box<Expression>,

@@ -3,13 +3,16 @@ use std::{fmt::Display, rc::Rc};
 
 #[derive(Debug)]
 pub enum ErrorKind {
+    DivisionByZero,
     ExpectedExpression,
     IncompleteIf,
     InvalidArguments,
     InvalidIdentifier,
     InvalidToken,
+    MismatchedTypes,
     MissingClosingParenthesis,
     NotANumber,
+    Overflow,
     UndeclaredFunction,
     UnexpectedEndOfFile,
     UnimplementedFunction,
@@ -27,13 +30,16 @@ pub struct Error {
 impl Display for ErrorKind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let message = match self {
+            Self::DivisionByZero => "Division by zero",
             Self::ExpectedExpression => "Expected expression",
             Self::IncompleteIf => "Incomplete if",
             Self::InvalidArguments => "Invalid arguments",
             Self::InvalidIdentifier => "Invalid identifier",
             Self::InvalidToken => "Invalid token",
+            Self::MismatchedTypes => "Mismatched types",
             Self::MissingClosingParenthesis => "Missing closing parenthesis",
             Self::NotANumber => "Not a number",
+            Self::Overflow => "Overflow",
             Self::UndeclaredFunction => "Undeclared function",
             Self::UnexpectedEndOfFile => "Unexpected end of file",
             Self::UnimplementedFunction => "Unimplemented function",
