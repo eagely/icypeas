@@ -82,6 +82,25 @@ impl Parser {
             || self.current_is(TokenKind::Semicolon)
     }
 
+    fn is_primary(&self) -> bool {
+        if let Some(token) = self.current() {
+            match token.kind {
+                TokenKind::Identifier
+                | TokenKind::True
+                | TokenKind::False
+                | TokenKind::Null
+                | TokenKind::Float
+                | TokenKind::Integer
+                | TokenKind::String
+                | TokenKind::Underscore
+                | TokenKind::LeftParenthesis => true,
+                _ => false,
+            }
+        } else {
+            false
+        }
+    }
+
     fn parse_expression(&mut self) -> Result<Expression> {
         let expr = self.parse_declaration()?;
 
@@ -178,7 +197,7 @@ impl Parser {
         self.advance();
 
         let parameter = self.current().ok_or(ErrorKind::UnexpectedEndOfFile)?;
-        
+
         self.advance();
 
         try_consume_any!(*self, TokenKind::Equal); // This has to be TokenKind::Equal, we checked it previously
@@ -313,29 +332,19 @@ impl Parser {
     }
 
     fn parse_call(&mut self) -> Result<Expression> {
-        if !self.current_is(TokenKind::Identifier) || self.next_is(1, TokenKind::Newline) || self.next_is(1, TokenKind::Semicolon) {
-            return self.parse_primary();
-        }
-
-        let function = self.current().ok_or(ErrorKind::UnexpectedEndOfFile)?;
-        self.advance();
-        let location = Rc::clone(&function.location);
-
-        if self.is_end_of_expression() {
-            return Err(Error::with_help(
-                ErrorKind::InvalidArguments,
+        let mut expr = self.parse_primary()?;
+        while !self.is_end_of_expression() && self.is_primary() {
+            let arg = self.parse_primary()?;
+            let location = arg.location.clone();
+            expr = Expression::new(
+                ExpressionKind::Call {
+                    function: Box::new(expr),
+                    argument: Box::new(arg),
+                },
                 location,
-                "Expected an argument",
-            ));
+            );
         }
-
-        Ok(Expression::new(
-            ExpressionKind::Call {
-                function,
-                argument: Box::new(self.parse_expression()?),
-            },
-            location,
-        ))
+        Ok(expr)
     }
 
     fn parse_primary(&mut self) -> Result<Expression> {

@@ -52,20 +52,8 @@ impl Interpreter {
                 todo!();
             }
             ExpressionKind::Call { function, argument } => {
-                let function_name = function.get_identifier_name().ok_or(Error::with_help(
-                    ErrorKind::InvalidToken,
-                    function.location.clone(),
-                    format!("Expected Identifier, got {:?}", function.kind),
-                ))?;
-
-                let function_value =
-                    self.environment
-                        .borrow()
-                        .get(&function_name)
-                        .ok_or(Error::new(
-                            ErrorKind::UndeclaredFunction,
-                            function.location.clone(),
-                        ))?;
+                let location = function.location.clone();
+                let function_value = self.evaluate(*function)?;
 
                 match function_value {
                     Value::Function { parameter, body } => {
@@ -81,7 +69,7 @@ impl Interpreter {
                     }
                     _ => Err(Error::with_help(
                         ErrorKind::ExpectedExpression,
-                        function.location.clone(),
+                        location,
                         format!("Tried to invoke a non-function type {:?}", function_value),
                     )),
                 }

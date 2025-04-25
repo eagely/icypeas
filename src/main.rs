@@ -10,9 +10,14 @@ use std::{cell::RefCell, rc::Rc};
 
 fn main() {
     let source = r#"
-        bar y = foo y
-        foo x = x
-        bar 8
+        selectFirst s = f
+        churchTrue f = selectFirst
+        
+        selectSecond s = s
+        churchFalse f = selectSecond
+        
+        churchTrue 1 2
+        churchFalse 1 2
     "#;
     println!("Source: {}", source);
 

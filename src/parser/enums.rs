@@ -18,7 +18,7 @@ pub enum ExpressionKind {
         right: Box<Expression>,
     },
     Call {
-        function: Token,
+        function: Box<Expression>,
         argument: Box<Expression>,
     },
     Declaration {
