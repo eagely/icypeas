@@ -1,13 +1,12 @@
-use std::rc::Rc;
-
 use crate::lexer::enums::{Location, Token};
+use std::rc::Rc;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum ExpressionKind {
     Assignment {
-        identifier: Token,
-        parameters: Vec<Token>,
-        expression: Box<Expression>,
+        name: Token,
+        parameter: Token,
+        body: Box<Expression>,
     },
     Unary {
         operator: Token,
@@ -19,8 +18,8 @@ pub enum ExpressionKind {
         right: Box<Expression>,
     },
     Call {
-        function: Box<Expression>,
-        arguments: Vec<Expression>,
+        function: Token,
+        argument: Box<Expression>,
     },
     Declaration {
         name: Token,

@@ -1,11 +1,10 @@
-use super::enums::{FunctionPattern, Value};
+use super::enums::Value;
 use super::environment::Environment;
 use crate::error::{Error, ErrorKind, Result};
 use crate::lexer::enums::TokenValue;
 use crate::parser::enums::{Expression, ExpressionKind};
 use std::cell::RefCell;
 use std::convert::TryInto;
-use std::iter::once;
 use std::rc::Rc;
 
 pub struct Interpreter {
@@ -17,47 +16,27 @@ impl Interpreter {
         Self { environment }
     }
 
-    pub fn interpret(&mut self, expression: &Expression) -> Result<Value> {
+    pub fn interpret(&mut self, expression: Expression) -> Result<Value> {
         self.evaluate(expression)
     }
 
-    pub fn evaluate(&mut self, expression: &Expression) -> Result<Value> {
-        match &expression.kind {
+    pub fn evaluate(&mut self, expression: Expression) -> Result<Value> {
+        match expression.kind {
             ExpressionKind::Assignment {
-                identifier,
-                parameters,
-                expression,
+                name,
+                parameter,
+                body,
             } => {
-                let name: String = identifier.get_identifier_name().ok_or(Error::with_help(
+                let name: String = name.get_identifier_name().ok_or(Error::with_help(
                     ErrorKind::InvalidToken,
                     Rc::clone(&expression.location),
                     "Function name must be an identifier",
                 ))?;
 
-                let function = { self.environment.borrow().get(&name) };
-                if let Some(Value::Function {
-                    types,
-                    patterns,
-                    environment,
-                }) = function
-                {
-                    let pattern = FunctionPattern {
-                        parameters: parameters.to_owned(),
-                        body: Rc::new(*expression.to_owned()),
-                    };
-                    let function = Value::Function {
-                        types,
-                        patterns: patterns.into_iter().chain(once(pattern)).collect(),
-                        environment,
-                    };
-                    self.environment.borrow_mut().set(name, function.clone());
-                    Ok(function)
-                } else {
-                    Err(Error::new(
-                        ErrorKind::UndeclaredFunction,
-                        Rc::clone(&expression.location),
-                    ))
-                }
+                self.environment
+                    .borrow_mut()
+                    .set(name, Value::Function { parameter, body });
+                Ok(Value::None)
             }
             ExpressionKind::Unary {
                 operator,
@@ -72,131 +51,43 @@ impl Interpreter {
             } => {
                 todo!();
             }
-            ExpressionKind::Call {
-                function,
-                arguments,
-            } => {
-                let function_name = if let ExpressionKind::Identifier { token } = &function.kind {
-                    if let TokenValue::Identifier(name) = &token.value {
-                        name.clone()
-                    } else {
-                        return Err(Error::with_help(
-                            ErrorKind::InvalidIdentifier,
-                            Rc::clone(&token.location),
-                            "Expected function name to be an identifier",
-                        ));
-                    }
-                } else {
-                    return Err(Error::with_help(
-                        ErrorKind::InvalidIdentifier,
-                        Rc::clone(&expression.location),
-                        "Expected function name to be an identifier",
-                    ));
-                };
+            ExpressionKind::Call { function, argument } => {
+                let function_name = function.get_identifier_name().ok_or(Error::with_help(
+                    ErrorKind::InvalidToken,
+                    function.location.clone(),
+                    format!("Expected Identifier, got {:?}", function.kind),
+                ))?;
 
-                let builtin_function_name = self.environment.borrow().get_builtin(&function_name);
-                if let Some(builtin) = builtin_function_name {
-                    let mut evaluated_arguments = Vec::new();
-                    for arg in arguments {
-                        evaluated_arguments.push(self.evaluate(arg)?);
-                    }
-                    return builtin(evaluated_arguments, Rc::clone(&expression.location));
-                }
-
-                let function =
+                let function_value =
                     self.environment
                         .borrow()
                         .get(&function_name)
-                        .ok_or(Error::with_help(
+                        .ok_or(Error::new(
                             ErrorKind::UndeclaredFunction,
-                            Rc::clone(&expression.location),
-                            "Tried to call a function that was never declared",
+                            function.location.clone(),
                         ))?;
 
-                if let Value::Function {
-                    types,
-                    patterns,
-                    environment,
-                } = function
-                {
-                    if patterns.is_empty() {
-                        return Err(Error::with_help(
-                            ErrorKind::UnimplementedFunction,
-                            Rc::clone(&expression.location),
-                            "This function is declared but not implemented",
-                        ));
+                match function_value {
+                    Value::Function { parameter, body } => {
+                        let parameter_name = parameter.get_identifier_name().ok_or(Error::new(
+                            ErrorKind::InvalidToken,
+                            parameter.location.clone(),
+                        ))?;
+                        let evaluated_argument = self.evaluate(*argument)?;
+                        self.environment
+                            .borrow_mut()
+                            .set(parameter_name, evaluated_argument);
+                        Ok(self.evaluate(*body)?)
                     }
-                    let mut evaluated_arguments = Vec::new();
-                    for arg in arguments {
-                        evaluated_arguments.push(self.evaluate(arg)?);
-                    }
-
-                    let pattern = patterns
-                        .iter()
-                        .find(|pattern| pattern.parameters.len() == evaluated_arguments.len());
-
-                    if let Some(pattern) = pattern {
-                        let value;
-                        {
-                            let mut new_env = Environment::with_parent(Rc::clone(&environment));
-                            for (param, arg) in pattern.parameters.iter().zip(evaluated_arguments) {
-                                let param_name =
-                                    param.get_identifier_name().ok_or(Error::with_help(
-                                        ErrorKind::InvalidToken,
-                                        Rc::clone(&expression.location),
-                                        "Parameter name must be an identifier",
-                                    ))?;
-                                new_env.set(param_name, arg);
-                            }
-
-                            let old_env = Rc::clone(&self.environment);
-                            self.environment = Rc::new(RefCell::new(new_env));
-                            value = self.evaluate(&pattern.body);
-                            self.environment = old_env;
-                        }
-                        value
-                    } else {
-                        Err(Error::new(
-                            ErrorKind::InvalidArguments,
-                            Rc::clone(&expression.location),
-                        ))
-                    }
-                } else {
-                    Err(Error::with_help(
-                        ErrorKind::InvalidIdentifier,
-                        Rc::clone(&expression.location),
-                        "This identifier is not a function",
-                    ))
+                    _ => Err(Error::with_help(
+                        ErrorKind::ExpectedExpression,
+                        function.location.clone(),
+                        format!("Tried to invoke a non-function type {:?}", function_value),
+                    )),
                 }
             }
             ExpressionKind::Declaration { name, types } => {
-                let name = name.get_identifier_name().ok_or(Error::with_help(
-                    ErrorKind::InvalidToken,
-                    Rc::clone(&expression.location),
-                    "Function names must be identifiers",
-                ))?;
-
-                let types: Result<Vec<String>> = types
-                    .iter()
-                    .map(|t| {
-                        t.get_identifier_name().ok_or(Error::with_help(
-                            ErrorKind::InvalidToken,
-                            Rc::clone(&expression.location),
-                            "Function types must be identifiers",
-                        ))
-                    })
-                    .collect();
-                let types = types?;
-
-                let function = Value::Function {
-                    types,
-                    patterns: Vec::new(),
-                    environment: Rc::new(RefCell::new(Environment::with_parent(Rc::clone(
-                        &self.environment,
-                    )))),
-                };
-                self.environment.borrow_mut().set(name, function.clone());
-                Ok(function.clone())
+                todo!()
             }
             ExpressionKind::Identifier { token } => match &token.value {
                 TokenValue::Identifier(name) => self.environment.borrow().get(name).ok_or(
@@ -214,10 +105,10 @@ impl Interpreter {
                 let mut v = None;
                 let mut else_branch = true;
                 for branch in branches {
-                    match self.evaluate(&branch.0)? {
+                    match self.evaluate(*branch.0)? {
                         Value::Boolean(b) => {
                             if b && else_branch {
-                                v = Some(self.evaluate(&branch.1));
+                                v = Some(self.evaluate(*branch.1));
                                 else_branch = false;
                             }
                         }
@@ -226,7 +117,7 @@ impl Interpreter {
                 }
                 if else_branch {
                     if let Some(o) = otherwise {
-                        v = Some(self.evaluate(&o));
+                        v = Some(self.evaluate(*o));
                     }
                 }
                 v.ok_or(Error::new(
@@ -237,7 +128,7 @@ impl Interpreter {
             ExpressionKind::Lambda { parameters, body } => {
                 todo!();
             }
-            ExpressionKind::Literal { token } => token.try_into(),
+            ExpressionKind::Literal { token } => (&token).try_into(),
         }
     }
 }
