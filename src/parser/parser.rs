@@ -76,6 +76,12 @@ impl Parser {
         self.index >= self.tokens.len()
     }
 
+    fn is_end_of_expression(&self) -> bool {
+        self.is_eof()
+            || self.current_is(TokenKind::Newline)
+            || self.current_is(TokenKind::Semicolon)
+    }
+
     fn parse_expression(&mut self) -> Result<Expression> {
         let expr = self.parse_declaration()?;
 
@@ -159,28 +165,33 @@ impl Parser {
             return self.parse_if();
         }
 
-        let identifier = self.current().ok_or(ErrorKind::ExpectedExpression)?;
+        let name = self.current().ok_or(ErrorKind::ExpectedExpression)?;
 
-        self.advance();
-        let mut parameters = Vec::new();
-
-        while let Some(t) = self.current() {
-            if !t.kind.is_primary() {
-                break;
-            }
-            self.advance();
-            parameters.push(t);
+        if !self.next_is(1, TokenKind::Identifier) {
+            return Err(Error::with_help(
+                ErrorKind::ExpectedExpression,
+                Rc::clone(&name.location),
+                "Missing parameter for function assignment.",
+            ));
         }
 
-        try_consume_any!(*self, TokenKind::Equal);
+        self.advance();
 
-        let expr = self.parse_expression()?;
-        let location = Rc::clone(&expr.location);
+        let parameter = self.current().ok_or(ErrorKind::UnexpectedEndOfFile)?;
+        
+        self.advance();
+
+        try_consume_any!(*self, TokenKind::Equal); // This has to be TokenKind::Equal, we checked it previously
+        dbg!(self.current());
+
+        let body = Box::new(self.parse_expression()?);
+        dbg!(&body);
+        let location = Rc::clone(&body.location);
         Ok(Expression::new(
             ExpressionKind::Assignment {
-                identifier,
-                parameters,
-                expression: Box::new(expr),
+                name,
+                parameter,
+                body,
             },
             location,
         ))
@@ -302,28 +313,29 @@ impl Parser {
     }
 
     fn parse_call(&mut self) -> Result<Expression> {
-        let mut expr = self.parse_primary()?;
-
-        if self.previous_is(1, TokenKind::Identifier) {
-            let mut arguments = Vec::new();
-            while !self.is_eof()
-                && !self.current_is(TokenKind::Semicolon)
-                && !self.current_is(TokenKind::Newline)
-            {
-                arguments.push(self.parse_primary()?);
-            }
-
-            let location = Rc::clone(&expr.location);
-            expr = Expression::new(
-                ExpressionKind::Call {
-                    function: Box::new(expr),
-                    arguments,
-                },
-                location,
-            );
+        if !self.current_is(TokenKind::Identifier) || self.next_is(1, TokenKind::Newline) || self.next_is(1, TokenKind::Semicolon) {
+            return self.parse_primary();
         }
 
-        Ok(expr)
+        let function = self.current().ok_or(ErrorKind::UnexpectedEndOfFile)?;
+        self.advance();
+        let location = Rc::clone(&function.location);
+
+        if self.is_end_of_expression() {
+            return Err(Error::with_help(
+                ErrorKind::InvalidArguments,
+                location,
+                "Expected an argument",
+            ));
+        }
+
+        Ok(Expression::new(
+            ExpressionKind::Call {
+                function,
+                argument: Box::new(self.parse_expression()?),
+            },
+            location,
+        ))
     }
 
     fn parse_primary(&mut self) -> Result<Expression> {

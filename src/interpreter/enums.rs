@@ -1,11 +1,8 @@
 use crate::error::{Error, ErrorKind, Result};
 use crate::lexer::enums::{Token, TokenValue};
 use crate::parser::enums::Expression;
-use std::cell::RefCell;
 use std::fmt::{Display, Formatter};
 use std::rc::Rc;
-
-use super::environment::Environment;
 
 #[derive(Clone, Debug)]
 pub enum Value {
@@ -15,16 +12,9 @@ pub enum Value {
     None,
     String(String),
     Function {
-        types: Vec<String>,
-        patterns: Vec<FunctionPattern>,
-        environment: Rc<RefCell<Environment>>,
+        parameter: Token,
+        body: Box<Expression>,
     },
-}
-
-#[derive(Clone, Debug)]
-pub struct FunctionPattern {
-    pub parameters: Vec<Token>,
-    pub body: Rc<Expression>,
 }
 
 impl TryFrom<&Token> for Value {
@@ -53,9 +43,7 @@ impl Display for Value {
             Value::Integer(integer) => write!(f, "{}", integer),
             Value::None => write!(f, "None"),
             Value::String(string) => write!(f, "{}", string),
-            Value::Function {
-                types, patterns, ..
-            } => write!(f, "function {:#?} : {{ {:#?} }}", types, patterns),
+            Value::Function { parameter, body } => write!(f, "λ{:#?}.{:#?}", parameter, body),
         }
     }
 }
