@@ -1,7 +1,7 @@
 use super::enums::Value;
 use super::environment::Environment;
 use crate::error::{Error, ErrorKind, Result};
-use crate::lexer::enums::TokenValue;
+use crate::lexer::enums::{TokenKind, TokenValue};
 use crate::parser::enums::{Expression, ExpressionKind};
 use std::cell::RefCell;
 use std::convert::TryInto;
@@ -48,9 +48,246 @@ impl Interpreter {
                 left,
                 operator,
                 right,
-            } => {
-                todo!();
-            }
+            } => match operator.kind {
+                TokenKind::Plus => {
+                    let left_value = self.evaluate(*left)?;
+                    let right_value = self.evaluate(*right)?;
+                    match (left_value, right_value) {
+                        (Value::Integer(l), Value::Integer(r)) => Ok(Value::Integer(l + r)),
+                        (Value::String(l), Value::String(r)) => Ok(Value::String(l + &r)),
+                        _ => Err(Error::with_help(
+                            ErrorKind::InvalidArguments,
+                            operator.location.clone(),
+                            "Invalid types for addition",
+                        )),
+                    }
+                }
+                TokenKind::Minus => {
+                    let left_value = self.evaluate(*left)?;
+                    let right_value = self.evaluate(*right)?;
+                    match (left_value, right_value) {
+                        (Value::Integer(l), Value::Integer(r)) => Ok(Value::Integer(l - r)),
+                        _ => Err(Error::with_help(
+                            ErrorKind::InvalidArguments,
+                            operator.location.clone(),
+                            "Invalid types for subtraction",
+                        )),
+                    }
+                }
+                TokenKind::Star => {
+                    let left_value = self.evaluate(*left)?;
+                    let right_value = self.evaluate(*right)?;
+                    match (left_value, right_value) {
+                        (Value::Integer(l), Value::Integer(r)) => Ok(Value::Integer(l * r)),
+                        _ => Err(Error::with_help(
+                            ErrorKind::InvalidArguments,
+                            operator.location.clone(),
+                            "Invalid types for multiplication",
+                        )),
+                    }
+                }
+                TokenKind::StarStar => {
+                    let left_value = self.evaluate(*left)?;
+                    let right_value = self.evaluate(*right)?;
+                    match (left_value, right_value) {
+                        (Value::Integer(l), Value::Integer(r)) => {
+                            let Ok(exp) = u32::try_from(r) else {
+                                return if (0..=1).contains(&l) {
+                                    Ok(Value::Integer(l))
+                                } else {
+                                    Err(if r > 0 {
+                                        Error::with_help(
+                                            ErrorKind::Overflow,
+                                            operator.location.clone(),
+                                            "Exponent too large",
+                                        )
+                                    } else {
+                                        Error::with_help(
+                                            ErrorKind::InvalidArguments,
+                                            operator.location.clone(),
+                                            "Exponent must be a non-negative integer",
+                                        )
+                                    })
+                                };
+                            };
+                            Ok(Value::Integer(l.checked_pow(exp).ok_or(Error::new(
+                                ErrorKind::Overflow,
+                                operator.location.clone(),
+                            ))?))
+                        }
+                        _ => Err(Error::with_help(
+                            ErrorKind::InvalidArguments,
+                            operator.location.clone(),
+                            "Invalid types for exponentiation",
+                        )),
+                    }
+                }
+                TokenKind::Slash => {
+                    let left_value = self.evaluate(*left)?;
+                    let right_value = self.evaluate(*right)?;
+                    match (left_value, right_value) {
+                        (Value::Integer(l), Value::Integer(r)) => {
+                            if r == 0 {
+                                Err(Error::new(
+                                    ErrorKind::DivisionByZero,
+                                    operator.location.clone(),
+                                ))
+                            } else {
+                                Ok(Value::Integer(l / r))
+                            }
+                        }
+                        _ => Err(Error::with_help(
+                            ErrorKind::InvalidArguments,
+                            operator.location.clone(),
+                            "Invalid types for division",
+                        )),
+                    }
+                }
+                TokenKind::Percent => {
+                    let left_value = self.evaluate(*left)?;
+                    let right_value = self.evaluate(*right)?;
+                    match (left_value, right_value) {
+                        (Value::Integer(l), Value::Integer(r)) => {
+                            if r == 0 {
+                                Err(Error::new(
+                                    ErrorKind::DivisionByZero,
+                                    operator.location.clone(),
+                                ))
+                            } else {
+                                Ok(Value::Integer(l % r))
+                            }
+                        }
+                        _ => Err(Error::with_help(
+                            ErrorKind::InvalidArguments,
+                            operator.location.clone(),
+                            "Invalid types for modulo",
+                        )),
+                    }
+                }
+                TokenKind::Ampersand => {
+                    let left_value = self.evaluate(*left)?;
+                    let right_value = self.evaluate(*right)?;
+                    match (left_value, right_value) {
+                        (Value::Integer(l), Value::Integer(r)) => Ok(Value::Integer(l & r)),
+                        (Value::Boolean(l), Value::Boolean(r)) => Ok(Value::Boolean(l & r)),
+                        _ => Err(Error::with_help(
+                            ErrorKind::InvalidArguments,
+                            operator.location.clone(),
+                            "Invalid types for logical AND",
+                        )),
+                    }
+                }
+                TokenKind::Pipe => {
+                    let left_value = self.evaluate(*left)?;
+                    let right_value = self.evaluate(*right)?;
+                    match (left_value, right_value) {
+                        (Value::Integer(l), Value::Integer(r)) => Ok(Value::Integer(l | r)),
+                        (Value::Boolean(l), Value::Boolean(r)) => Ok(Value::Boolean(l | r)),
+                        _ => Err(Error::with_help(
+                            ErrorKind::InvalidArguments,
+                            operator.location.clone(),
+                            "Invalid types for logical OR",
+                        )),
+                    }
+                }
+                TokenKind::Caret => {
+                    let left_value = self.evaluate(*left)?;
+                    let right_value = self.evaluate(*right)?;
+                    match (left_value, right_value) {
+                        (Value::Integer(l), Value::Integer(r)) => Ok(Value::Integer(l ^ r)),
+                        (Value::Boolean(l), Value::Boolean(r)) => Ok(Value::Boolean(l ^ r)),
+                        _ => Err(Error::with_help(
+                            ErrorKind::InvalidArguments,
+                            operator.location.clone(),
+                            "Invalid types for logical XOR",
+                        )),
+                    }
+                }
+                TokenKind::BangEqual => {
+                    let left_value = self.evaluate(*left)?;
+                    let right_value = self.evaluate(*right)?;
+                    match (left_value, right_value) {
+                        (Value::Integer(l), Value::Integer(r)) => Ok(Value::Boolean(l != r)),
+                        (Value::Boolean(l), Value::Boolean(r)) => Ok(Value::Boolean(l != r)),
+                        _ => Err(Error::with_help(
+                            ErrorKind::InvalidArguments,
+                            operator.location.clone(),
+                            "Invalid types for inequality",
+                        )),
+                    }
+                }
+                TokenKind::EqualEqual => {
+                    let left_value = self.evaluate(*left)?;
+                    let right_value = self.evaluate(*right)?;
+                    match (left_value, right_value) {
+                        (Value::Integer(l), Value::Integer(r)) => Ok(Value::Boolean(l == r)),
+                        (Value::Boolean(l), Value::Boolean(r)) => Ok(Value::Boolean(l == r)),
+                        _ => Err(Error::with_help(
+                            ErrorKind::InvalidArguments,
+                            operator.location.clone(),
+                            "Invalid types for equality",
+                        )),
+                    }
+                }
+                TokenKind::Greater => {
+                    let left_value = self.evaluate(*left)?;
+                    let right_value = self.evaluate(*right)?;
+                    match (left_value, right_value) {
+                        (Value::Integer(l), Value::Integer(r)) => Ok(Value::Boolean(l > r)),
+                        (Value::Boolean(l), Value::Boolean(r)) => Ok(Value::Boolean(l > r)),
+                        _ => Err(Error::with_help(
+                            ErrorKind::InvalidArguments,
+                            operator.location.clone(),
+                            "Invalid types for greater than",
+                        )),
+                    }
+                }
+                TokenKind::GreaterEqual => {
+                    let left_value = self.evaluate(*left)?;
+                    let right_value = self.evaluate(*right)?;
+                    match (left_value, right_value) {
+                        (Value::Integer(l), Value::Integer(r)) => Ok(Value::Boolean(l >= r)),
+                        (Value::Boolean(l), Value::Boolean(r)) => Ok(Value::Boolean(l >= r)),
+                        _ => Err(Error::with_help(
+                            ErrorKind::InvalidArguments,
+                            operator.location.clone(),
+                            "Invalid types for greater than or equal to",
+                        )),
+                    }
+                }
+                TokenKind::Less => {
+                    let left_value = self.evaluate(*left)?;
+                    let right_value = self.evaluate(*right)?;
+                    match (left_value, right_value) {
+                        (Value::Integer(l), Value::Integer(r)) => Ok(Value::Boolean(l < r)),
+                        (Value::Boolean(l), Value::Boolean(r)) => Ok(Value::Boolean(l < r)),
+                        _ => Err(Error::with_help(
+                            ErrorKind::InvalidArguments,
+                            operator.location.clone(),
+                            "Invalid types for less than",
+                        )),
+                    }
+                }
+                TokenKind::LessEqual => {
+                    let left_value = self.evaluate(*left)?;
+                    let right_value = self.evaluate(*right)?;
+                    match (left_value, right_value) {
+                        (Value::Integer(l), Value::Integer(r)) => Ok(Value::Boolean(l <= r)),
+                        (Value::Boolean(l), Value::Boolean(r)) => Ok(Value::Boolean(l <= r)),
+                        _ => Err(Error::with_help(
+                            ErrorKind::InvalidArguments,
+                            operator.location.clone(),
+                            "Invalid types for less than or equal to",
+                        )),
+                    }
+                }
+
+                _ => Err(Error::with_help(
+                    ErrorKind::UnsupportedExpression,
+                    operator.location.clone(),
+                    format!("Unsupported operator: {:?}", operator.kind),
+                )),
+            },
             ExpressionKind::Call { function, argument } => {
                 let location = function.location.clone();
                 let function_value = self.evaluate(*function)?;

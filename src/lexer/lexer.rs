@@ -80,12 +80,24 @@ impl Lexer {
                 '(' => TokenKind::LeftParenthesis,
                 ')' => TokenKind::RightParenthesis,
                 '&' => TokenKind::Ampersand,
-                '!' => TokenKind::Bang,
+                '!' => {
+                    if self.consume('=') {
+                        TokenKind::BangEqual
+                    } else {
+                        TokenKind::Bang
+                    }
+                }
                 '^' => TokenKind::Caret,
                 '|' => TokenKind::Pipe,
                 '+' => TokenKind::Plus,
                 '-' => TokenKind::Minus,
-                '*' => TokenKind::Star,
+                '*' => {
+                    if self.consume('*') {
+                        TokenKind::StarStar
+                    } else {
+                        TokenKind::Star
+                    }
+                }
                 '/' => TokenKind::Slash,
                 '%' => TokenKind::Percent,
                 '=' => {
