@@ -201,10 +201,8 @@ impl Parser {
         self.advance();
 
         try_consume_any!(*self, TokenKind::Equal); // This has to be TokenKind::Equal, we checked it previously
-        dbg!(self.current());
 
         let body = Box::new(self.parse_expression()?);
-        dbg!(&body);
         let location = Rc::clone(&body.location);
         Ok(Expression::new(
             ExpressionKind::Assignment {
@@ -282,8 +280,10 @@ impl Parser {
                 TokenKind::Plus,
                 TokenKind::Minus,
                 TokenKind::Star,
+                TokenKind::StarStar,
                 TokenKind::Slash,
                 TokenKind::Percent,
+                TokenKind::BangEqual,
                 TokenKind::Equal,
                 TokenKind::EqualEqual,
                 TokenKind::Less,

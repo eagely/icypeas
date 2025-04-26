@@ -18,6 +18,28 @@ fn main() {
         
         churchTrue 1 2
         churchFalse 1 2
+        
+        addTwice1 s = f + s + s
+        addTwice f = addTwice1
+        
+        addTwice 1 10
+        
+        1 == 1
+        3 + 4
+        10 - 5
+        2 * 3
+        20 / 4
+        20 % 3
+        2 ** 3
+        5 & 3
+        5 | 3
+        5 ^ 3
+        7 == 7
+        7 != 8
+        3 < 10
+        10 <= 10
+        15 > 5
+        15 >= 15
     "#;
     println!("Source: {}", source);
 

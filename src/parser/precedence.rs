@@ -7,6 +7,7 @@ pub enum Precedence {
     Comparison,
     Term,
     Factor,
+    Exponentiation,
     BitwiseOr,
     BitwiseXor,
     BitwiseAnd,
@@ -17,13 +18,15 @@ impl From<TokenKind> for Precedence {
     fn from(kind: TokenKind) -> Self {
         match kind {
             TokenKind::Equal => Precedence::Assignment,
-            TokenKind::EqualEqual
+            TokenKind::BangEqual
+            | TokenKind::EqualEqual
             | TokenKind::Less
             | TokenKind::LessEqual
             | TokenKind::Greater
             | TokenKind::GreaterEqual => Precedence::Comparison,
             TokenKind::Plus | TokenKind::Minus => Precedence::Term,
             TokenKind::Star | TokenKind::Slash | TokenKind::Percent => Precedence::Factor,
+            TokenKind::StarStar => Precedence::Exponentiation,
             TokenKind::Pipe => Precedence::BitwiseOr,
             TokenKind::Caret => Precedence::BitwiseXor,
             TokenKind::Ampersand => Precedence::BitwiseAnd,
