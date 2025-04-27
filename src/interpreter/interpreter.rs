@@ -1,5 +1,6 @@
 use super::enums::Value;
 use super::environment::Environment;
+use crate::err;
 use crate::error::{Error, ErrorKind, Result};
 use crate::lexer::enums::{TokenKind, TokenValue};
 use crate::parser::enums::{Expression, ExpressionKind};
@@ -55,11 +56,11 @@ impl Interpreter {
                     match (left_value, right_value) {
                         (Value::Integer(l), Value::Integer(r)) => Ok(Value::Integer(l + r)),
                         (Value::String(l), Value::String(r)) => Ok(Value::String(l + &r)),
-                        _ => Err(Error::with_help(
+                        _ => err!(
                             ErrorKind::InvalidArguments,
                             operator.location.clone(),
-                            "Invalid types for addition",
-                        )),
+                            "Invalid types for addition"
+                        ),
                     }
                 }
                 TokenKind::Minus => {
@@ -67,11 +68,11 @@ impl Interpreter {
                     let right_value = self.evaluate(*right)?;
                     match (left_value, right_value) {
                         (Value::Integer(l), Value::Integer(r)) => Ok(Value::Integer(l - r)),
-                        _ => Err(Error::with_help(
+                        _ => err!(
                             ErrorKind::InvalidArguments,
                             operator.location.clone(),
-                            "Invalid types for subtraction",
-                        )),
+                            "Invalid types for subtraction"
+                        ),
                     }
                 }
                 TokenKind::Star => {
@@ -79,11 +80,11 @@ impl Interpreter {
                     let right_value = self.evaluate(*right)?;
                     match (left_value, right_value) {
                         (Value::Integer(l), Value::Integer(r)) => Ok(Value::Integer(l * r)),
-                        _ => Err(Error::with_help(
+                        _ => err!(
                             ErrorKind::InvalidArguments,
                             operator.location.clone(),
-                            "Invalid types for multiplication",
-                        )),
+                            "Invalid types for multiplication"
+                        ),
                     }
                 }
                 TokenKind::StarStar => {
@@ -115,11 +116,11 @@ impl Interpreter {
                                 operator.location.clone(),
                             ))?))
                         }
-                        _ => Err(Error::with_help(
+                        _ => err!(
                             ErrorKind::InvalidArguments,
                             operator.location.clone(),
-                            "Invalid types for exponentiation",
-                        )),
+                            "Invalid types for exponentiation"
+                        ),
                     }
                 }
                 TokenKind::Slash => {
@@ -128,19 +129,16 @@ impl Interpreter {
                     match (left_value, right_value) {
                         (Value::Integer(l), Value::Integer(r)) => {
                             if r == 0 {
-                                Err(Error::new(
-                                    ErrorKind::DivisionByZero,
-                                    operator.location.clone(),
-                                ))
+                                err!(ErrorKind::DivisionByZero, operator.location.clone())
                             } else {
                                 Ok(Value::Integer(l / r))
                             }
                         }
-                        _ => Err(Error::with_help(
+                        _ => err!(
                             ErrorKind::InvalidArguments,
                             operator.location.clone(),
-                            "Invalid types for division",
-                        )),
+                            "Invalid types for division"
+                        ),
                     }
                 }
                 TokenKind::Percent => {
@@ -149,19 +147,16 @@ impl Interpreter {
                     match (left_value, right_value) {
                         (Value::Integer(l), Value::Integer(r)) => {
                             if r == 0 {
-                                Err(Error::new(
-                                    ErrorKind::DivisionByZero,
-                                    operator.location.clone(),
-                                ))
+                                err!(ErrorKind::DivisionByZero, operator.location.clone())
                             } else {
                                 Ok(Value::Integer(l % r))
                             }
                         }
-                        _ => Err(Error::with_help(
+                        _ => err!(
                             ErrorKind::InvalidArguments,
                             operator.location.clone(),
-                            "Invalid types for modulo",
-                        )),
+                            "Invalid types for modulo"
+                        ),
                     }
                 }
                 TokenKind::Ampersand => {
@@ -170,11 +165,11 @@ impl Interpreter {
                     match (left_value, right_value) {
                         (Value::Integer(l), Value::Integer(r)) => Ok(Value::Integer(l & r)),
                         (Value::Boolean(l), Value::Boolean(r)) => Ok(Value::Boolean(l & r)),
-                        _ => Err(Error::with_help(
+                        _ => err!(
                             ErrorKind::InvalidArguments,
                             operator.location.clone(),
-                            "Invalid types for logical AND",
-                        )),
+                            "Invalid types for logical AND"
+                        ),
                     }
                 }
                 TokenKind::Pipe => {
@@ -183,11 +178,11 @@ impl Interpreter {
                     match (left_value, right_value) {
                         (Value::Integer(l), Value::Integer(r)) => Ok(Value::Integer(l | r)),
                         (Value::Boolean(l), Value::Boolean(r)) => Ok(Value::Boolean(l | r)),
-                        _ => Err(Error::with_help(
+                        _ => err!(
                             ErrorKind::InvalidArguments,
                             operator.location.clone(),
-                            "Invalid types for logical OR",
-                        )),
+                            "Invalid types for logical OR"
+                        ),
                     }
                 }
                 TokenKind::Caret => {
@@ -196,11 +191,11 @@ impl Interpreter {
                     match (left_value, right_value) {
                         (Value::Integer(l), Value::Integer(r)) => Ok(Value::Integer(l ^ r)),
                         (Value::Boolean(l), Value::Boolean(r)) => Ok(Value::Boolean(l ^ r)),
-                        _ => Err(Error::with_help(
+                        _ => err!(
                             ErrorKind::InvalidArguments,
                             operator.location.clone(),
-                            "Invalid types for logical XOR",
-                        )),
+                            "Invalid types for logical XOR"
+                        ),
                     }
                 }
                 TokenKind::BangEqual => {
@@ -209,11 +204,11 @@ impl Interpreter {
                     match (left_value, right_value) {
                         (Value::Integer(l), Value::Integer(r)) => Ok(Value::Boolean(l != r)),
                         (Value::Boolean(l), Value::Boolean(r)) => Ok(Value::Boolean(l != r)),
-                        _ => Err(Error::with_help(
+                        _ => err!(
                             ErrorKind::InvalidArguments,
                             operator.location.clone(),
-                            "Invalid types for inequality",
-                        )),
+                            "Invalid types for inequality"
+                        ),
                     }
                 }
                 TokenKind::EqualEqual => {
@@ -222,11 +217,11 @@ impl Interpreter {
                     match (left_value, right_value) {
                         (Value::Integer(l), Value::Integer(r)) => Ok(Value::Boolean(l == r)),
                         (Value::Boolean(l), Value::Boolean(r)) => Ok(Value::Boolean(l == r)),
-                        _ => Err(Error::with_help(
+                        _ => err!(
                             ErrorKind::InvalidArguments,
                             operator.location.clone(),
-                            "Invalid types for equality",
-                        )),
+                            "Invalid types for equality"
+                        ),
                     }
                 }
                 TokenKind::Greater => {
@@ -235,11 +230,11 @@ impl Interpreter {
                     match (left_value, right_value) {
                         (Value::Integer(l), Value::Integer(r)) => Ok(Value::Boolean(l > r)),
                         (Value::Boolean(l), Value::Boolean(r)) => Ok(Value::Boolean(l > r)),
-                        _ => Err(Error::with_help(
+                        _ => err!(
                             ErrorKind::InvalidArguments,
                             operator.location.clone(),
-                            "Invalid types for greater than",
-                        )),
+                            "Invalid types for greater than"
+                        ),
                     }
                 }
                 TokenKind::GreaterEqual => {
@@ -248,11 +243,11 @@ impl Interpreter {
                     match (left_value, right_value) {
                         (Value::Integer(l), Value::Integer(r)) => Ok(Value::Boolean(l >= r)),
                         (Value::Boolean(l), Value::Boolean(r)) => Ok(Value::Boolean(l >= r)),
-                        _ => Err(Error::with_help(
+                        _ => err!(
                             ErrorKind::InvalidArguments,
                             operator.location.clone(),
-                            "Invalid types for greater than or equal to",
-                        )),
+                            "Invalid types for greater than or equal to"
+                        ),
                     }
                 }
                 TokenKind::Less => {
@@ -261,11 +256,11 @@ impl Interpreter {
                     match (left_value, right_value) {
                         (Value::Integer(l), Value::Integer(r)) => Ok(Value::Boolean(l < r)),
                         (Value::Boolean(l), Value::Boolean(r)) => Ok(Value::Boolean(l < r)),
-                        _ => Err(Error::with_help(
+                        _ => err!(
                             ErrorKind::InvalidArguments,
                             operator.location.clone(),
-                            "Invalid types for less than",
-                        )),
+                            "Invalid types for less than"
+                        ),
                     }
                 }
                 TokenKind::LessEqual => {
@@ -274,19 +269,18 @@ impl Interpreter {
                     match (left_value, right_value) {
                         (Value::Integer(l), Value::Integer(r)) => Ok(Value::Boolean(l <= r)),
                         (Value::Boolean(l), Value::Boolean(r)) => Ok(Value::Boolean(l <= r)),
-                        _ => Err(Error::with_help(
+                        _ => err!(
                             ErrorKind::InvalidArguments,
                             operator.location.clone(),
-                            "Invalid types for less than or equal to",
-                        )),
+                            "Invalid types for less than or equal to"
+                        ),
                     }
                 }
-
-                _ => Err(Error::with_help(
+                _ => err!(
                     ErrorKind::UnsupportedExpression,
                     operator.location.clone(),
-                    format!("Unsupported operator: {:?}", operator.kind),
-                )),
+                    format!("Unsupported operator: {:?}", operator.kind)
+                ),
             },
             ExpressionKind::Call { function, argument } => {
                 let location = function.location.clone();
@@ -304,11 +298,11 @@ impl Interpreter {
                             .set(parameter_name, evaluated_argument);
                         Ok(self.evaluate(*body)?)
                     }
-                    _ => Err(Error::with_help(
+                    _ => err!(
                         ErrorKind::ExpectedExpression,
                         location,
-                        format!("Tried to invoke a non-function type {:?}", function_value),
-                    )),
+                        format!("Tried to invoke a non-function type {:?}", function_value)
+                    ),
                 }
             }
             ExpressionKind::Declaration { name, types } => {
@@ -318,10 +312,7 @@ impl Interpreter {
                 TokenValue::Identifier(name) => self.environment.borrow().get(name).ok_or(
                     Error::new(ErrorKind::InvalidIdentifier, Rc::clone(&token.location)),
                 ),
-                _ => Err(Error::new(
-                    ErrorKind::UnsupportedExpression,
-                    Rc::clone(&token.location),
-                )),
+                _ => err!(ErrorKind::UnsupportedExpression, Rc::clone(&token.location)),
             },
             ExpressionKind::If {
                 branches,

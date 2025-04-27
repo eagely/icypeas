@@ -1,3 +1,4 @@
+use crate::err;
 use crate::error::{Error, ErrorKind, Result};
 use std::{
     fmt::{Debug, Display, Formatter},
@@ -48,11 +49,11 @@ impl TryFrom<&Token> for String {
         if let TokenValue::String(string) = &value.value {
             Ok(string.clone())
         } else {
-            Err(Error::with_help(
+            err!(
                 ErrorKind::InvalidToken,
                 Rc::clone(&value.location),
-                "This token was expected to be a string",
-            ))
+                "This token was expected to be a string"
+            )
         }
     }
 }
