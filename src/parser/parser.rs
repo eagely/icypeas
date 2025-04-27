@@ -136,7 +136,7 @@ impl Parser {
             _ => err!(
                 ErrorKind::ExpectedExpression,
                 location,
-                "This should be an identifier."
+                "This should be an identifier.",
             ),
         }
     }
@@ -191,7 +191,7 @@ impl Parser {
             return err!(
                 ErrorKind::ExpectedExpression,
                 Rc::clone(&name.location),
-                "Missing parameter for function assignment."
+                "Missing parameter for function assignment.",
             );
         }
 
@@ -381,7 +381,7 @@ impl Parser {
                     return err!(
                         ErrorKind::MissingClosingParenthesis,
                         token.location,
-                        "Consider inserting a ')' after this expression."
+                        "Consider inserting a ')' after this expression.",
                     );
                 }
                 Ok(expression)
@@ -389,7 +389,7 @@ impl Parser {
             _ => err!(
                 ErrorKind::ExpectedExpression,
                 token.location,
-                "This is not valid syntax."
+                "This is not valid syntax.",
             ),
         }
     }

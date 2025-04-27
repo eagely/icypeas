@@ -41,6 +41,8 @@ fn main() {
         10 <= 10
         15 > 5
         15 >= 15
+        
+        (x $ x+2) 1 
     "#;
     println!("Source: {}", source);
 

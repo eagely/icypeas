@@ -236,7 +236,7 @@ impl Lexer {
         err!(
             ErrorKind::UnterminatedString,
             self.location(),
-            "Consider inserting a \" after this string"
+            "Consider inserting a \" after this string",
         )
     }
 }

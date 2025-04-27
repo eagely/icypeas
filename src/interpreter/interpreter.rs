@@ -30,7 +30,7 @@ impl Interpreter {
             } => {
                 let name: String = name.get_identifier_name().ok_or(Error::with_help(
                     ErrorKind::InvalidToken,
-                    Rc::clone(&expression.location),
+                    expression.location.clone(),
                     "Function name must be an identifier",
                 ))?;
 
@@ -50,7 +50,7 @@ impl Interpreter {
                         _ => err!(
                             ErrorKind::InvalidArguments,
                             operator.location.clone(),
-                            "Invalid type for logical NOT"
+                            "Invalid type for logical NOT",
                         ),
                     }
                 }
@@ -61,14 +61,14 @@ impl Interpreter {
                         _ => err!(
                             ErrorKind::InvalidArguments,
                             operator.location.clone(),
-                            "Invalid type for negation"
+                            "Invalid type for negation",
                         ),
                     }
                 }
                 _ => err!(
                     ErrorKind::UnsupportedExpression,
                     operator.location.clone(),
-                    format!("Unsupported operator: {:?}", operator.kind)
+                    format!("Unsupported operator: {:?}", operator.kind),
                 ),
             },
             ExpressionKind::Binary {
@@ -85,7 +85,7 @@ impl Interpreter {
                         _ => err!(
                             ErrorKind::InvalidArguments,
                             operator.location.clone(),
-                            "Invalid types for addition"
+                            "Invalid types for addition",
                         ),
                     }
                 }
@@ -97,7 +97,7 @@ impl Interpreter {
                         _ => err!(
                             ErrorKind::InvalidArguments,
                             operator.location.clone(),
-                            "Invalid types for subtraction"
+                            "Invalid types for subtraction",
                         ),
                     }
                 }
@@ -109,7 +109,7 @@ impl Interpreter {
                         _ => err!(
                             ErrorKind::InvalidArguments,
                             operator.location.clone(),
-                            "Invalid types for multiplication"
+                            "Invalid types for multiplication",
                         ),
                     }
                 }
@@ -145,7 +145,7 @@ impl Interpreter {
                         _ => err!(
                             ErrorKind::InvalidArguments,
                             operator.location.clone(),
-                            "Invalid types for exponentiation"
+                            "Invalid types for exponentiation",
                         ),
                     }
                 }
@@ -163,7 +163,7 @@ impl Interpreter {
                         _ => err!(
                             ErrorKind::InvalidArguments,
                             operator.location.clone(),
-                            "Invalid types for division"
+                            "Invalid types for division",
                         ),
                     }
                 }
@@ -181,7 +181,7 @@ impl Interpreter {
                         _ => err!(
                             ErrorKind::InvalidArguments,
                             operator.location.clone(),
-                            "Invalid types for modulo"
+                            "Invalid types for modulo",
                         ),
                     }
                 }
@@ -194,7 +194,7 @@ impl Interpreter {
                         _ => err!(
                             ErrorKind::InvalidArguments,
                             operator.location.clone(),
-                            "Invalid types for logical AND"
+                            "Invalid types for logical AND",
                         ),
                     }
                 }
@@ -207,7 +207,7 @@ impl Interpreter {
                         _ => err!(
                             ErrorKind::InvalidArguments,
                             operator.location.clone(),
-                            "Invalid types for logical OR"
+                            "Invalid types for logical OR",
                         ),
                     }
                 }
@@ -220,7 +220,7 @@ impl Interpreter {
                         _ => err!(
                             ErrorKind::InvalidArguments,
                             operator.location.clone(),
-                            "Invalid types for logical XOR"
+                            "Invalid types for logical XOR",
                         ),
                     }
                 }
@@ -233,7 +233,7 @@ impl Interpreter {
                         _ => err!(
                             ErrorKind::InvalidArguments,
                             operator.location.clone(),
-                            "Invalid types for inequality"
+                            "Invalid types for inequality",
                         ),
                     }
                 }
@@ -246,7 +246,7 @@ impl Interpreter {
                         _ => err!(
                             ErrorKind::InvalidArguments,
                             operator.location.clone(),
-                            "Invalid types for equality"
+                            "Invalid types for equality",
                         ),
                     }
                 }
@@ -259,7 +259,7 @@ impl Interpreter {
                         _ => err!(
                             ErrorKind::InvalidArguments,
                             operator.location.clone(),
-                            "Invalid types for greater than"
+                            "Invalid types for greater than",
                         ),
                     }
                 }
@@ -272,7 +272,7 @@ impl Interpreter {
                         _ => err!(
                             ErrorKind::InvalidArguments,
                             operator.location.clone(),
-                            "Invalid types for greater than or equal to"
+                            "Invalid types for greater than or equal to",
                         ),
                     }
                 }
@@ -285,7 +285,7 @@ impl Interpreter {
                         _ => err!(
                             ErrorKind::InvalidArguments,
                             operator.location.clone(),
-                            "Invalid types for less than"
+                            "Invalid types for less than",
                         ),
                     }
                 }
@@ -298,14 +298,14 @@ impl Interpreter {
                         _ => err!(
                             ErrorKind::InvalidArguments,
                             operator.location.clone(),
-                            "Invalid types for less than or equal to"
+                            "Invalid types for less than or equal to",
                         ),
                     }
                 }
                 _ => err!(
                     ErrorKind::UnsupportedExpression,
                     operator.location.clone(),
-                    format!("Unsupported operator: {:?}", operator.kind)
+                    format!("Unsupported operator: {:?}", operator.kind),
                 ),
             },
             ExpressionKind::Call { function, argument } => {
@@ -327,7 +327,7 @@ impl Interpreter {
                     _ => err!(
                         ErrorKind::ExpectedExpression,
                         location,
-                        format!("Tried to invoke a non-function type {:?}", function_value)
+                        format!("Tried to invoke a non-function type {:?}", function_value),
                     ),
                 }
             }
@@ -336,9 +336,9 @@ impl Interpreter {
             }
             ExpressionKind::Identifier { token } => match &token.value {
                 TokenValue::Identifier(name) => self.environment.borrow().get(name).ok_or(
-                    Error::new(ErrorKind::InvalidIdentifier, Rc::clone(&token.location)),
+                    Error::new(ErrorKind::InvalidIdentifier, token.location.clone()),
                 ),
-                _ => err!(ErrorKind::UnsupportedExpression, Rc::clone(&token.location)),
+                _ => err!(ErrorKind::UnsupportedExpression, token.location.clone()),
             },
             ExpressionKind::If {
                 branches,
@@ -364,7 +364,7 @@ impl Interpreter {
                 }
                 v.ok_or(Error::new(
                     ErrorKind::IncompleteIf,
-                    Rc::clone(&expression.location),
+                    expression.location.clone(),
                 ))?
             }
             ExpressionKind::Lambda { parameters, body } => {

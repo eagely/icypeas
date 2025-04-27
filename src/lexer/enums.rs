@@ -52,7 +52,7 @@ impl TryFrom<&Token> for String {
             err!(
                 ErrorKind::InvalidToken,
                 Rc::clone(&value.location),
-                "This token was expected to be a string"
+                "This token was expected to be a string",
             )
         }
     }
