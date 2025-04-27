@@ -42,9 +42,35 @@ impl Interpreter {
             ExpressionKind::Unary {
                 operator,
                 expression,
-            } => {
-                todo!();
-            }
+            } => match operator.kind {
+                TokenKind::Bang => {
+                    let value = self.evaluate(*expression)?;
+                    match value {
+                        Value::Boolean(b) => Ok(Value::Boolean(!b)),
+                        _ => err!(
+                            ErrorKind::InvalidArguments,
+                            operator.location.clone(),
+                            "Invalid type for logical NOT"
+                        ),
+                    }
+                }
+                TokenKind::Minus => {
+                    let value = self.evaluate(*expression)?;
+                    match value {
+                        Value::Integer(i) => Ok(Value::Integer(-i)),
+                        _ => err!(
+                            ErrorKind::InvalidArguments,
+                            operator.location.clone(),
+                            "Invalid type for negation"
+                        ),
+                    }
+                }
+                _ => err!(
+                    ErrorKind::UnsupportedExpression,
+                    operator.location.clone(),
+                    format!("Unsupported operator: {:?}", operator.kind)
+                ),
+            },
             ExpressionKind::Binary {
                 left,
                 operator,
