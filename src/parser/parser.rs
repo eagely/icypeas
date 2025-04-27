@@ -114,7 +114,7 @@ impl Parser {
         }
 
         let name = self.current().ok_or(ErrorKind::UnexpectedEndOfFile)?;
-        let location = Rc::clone(&name.location);
+        let location = name.location.clone();
 
         match name.kind {
             TokenKind::Identifier => {
@@ -161,7 +161,7 @@ impl Parser {
         if self.current_is(TokenKind::Dollar) {
             try_consume_any!(*self, TokenKind::Dollar);
             let body = self.parse_expression()?;
-            let location = Rc::clone(&body.location);
+            let location = body.location.clone();
             Ok(Expression::new(
                 ExpressionKind::Lambda {
                     parameters,
@@ -190,7 +190,7 @@ impl Parser {
         if !self.next_is(1, TokenKind::Identifier) {
             return err!(
                 ErrorKind::ExpectedExpression,
-                Rc::clone(&name.location),
+                name.location.clone(),
                 "Missing parameter for function assignment.",
             );
         }
@@ -204,7 +204,7 @@ impl Parser {
         try_consume_any!(*self, TokenKind::Equal); // This has to be TokenKind::Equal, we checked it previously
 
         let body = Box::new(self.parse_expression()?);
-        let location = Rc::clone(&body.location);
+        let location = body.location.clone();
         Ok(Expression::new(
             ExpressionKind::Assignment {
                 name,
@@ -223,7 +223,7 @@ impl Parser {
         try_consume_any!(*self, TokenKind::If);
         let condition = Box::new(self.parse_expression()?);
         let body = Box::new(self.parse_expression()?);
-        let location = Rc::clone(&condition.location);
+        let location = condition.location.clone();
 
         let mut branches = vec![(condition, body)];
         while self.current_is(TokenKind::Elif) {
@@ -298,7 +298,7 @@ impl Parser {
                 break;
             }
             let operator = self.previous(1).ok_or(ErrorKind::UnexpectedEndOfFile)?;
-            let location = Rc::clone(&operator.location);
+            let location = operator.location.clone();
             let right = self.parse_binary_with_precedence(current_precedence)?;
 
             left = Expression::new(
@@ -315,7 +315,7 @@ impl Parser {
 
     fn parse_unary(&mut self) -> Result<Expression> {
         let token = self.current().ok_or(ErrorKind::UnexpectedEndOfFile)?;
-        let location = Rc::clone(&token.location);
+        let location = token.location.clone();
 
         match token.kind {
             TokenKind::Bang | TokenKind::Minus => {
@@ -350,7 +350,7 @@ impl Parser {
 
     fn parse_primary(&mut self) -> Result<Expression> {
         let token = self.current().ok_or(ErrorKind::UnexpectedEndOfFile)?;
-        let location = Rc::clone(&token.location);
+        let location = token.location.clone();
 
         match token.kind {
             TokenKind::True
@@ -363,7 +363,7 @@ impl Parser {
                 self.advance();
                 Ok(Expression::new(
                     ExpressionKind::Literal { token },
-                    Rc::clone(&location),
+                    location.clone(),
                 ))
             }
             TokenKind::Identifier => {
@@ -371,7 +371,7 @@ impl Parser {
 
                 Ok(Expression::new(
                     ExpressionKind::Identifier { token },
-                    Rc::clone(&location),
+                    location.clone(),
                 ))
             }
             TokenKind::LeftParenthesis => {

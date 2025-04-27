@@ -51,7 +51,7 @@ impl TryFrom<&Token> for String {
         } else {
             err!(
                 ErrorKind::InvalidToken,
-                Rc::clone(&value.location),
+                value.location.clone(),
                 "This token was expected to be a string",
             )
         }

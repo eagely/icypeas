@@ -217,7 +217,7 @@ impl Lexer {
             TokenValue::Integer(
                 number
                     .parse()
-                    .map_err(|_| Error::new(ErrorKind::NotANumber, Rc::clone(&self.location())))?,
+                    .map_err(|_| Error::new(ErrorKind::NotANumber, self.location().clone()))?,
             ),
         ))
     }

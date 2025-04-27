@@ -72,7 +72,7 @@ fn main() {
 
     let environment = Rc::new(RefCell::new(Environment::new()));
     for expr in ast {
-        let mut interpreter = Interpreter::new(Rc::clone(&environment));
+        let mut interpreter = Interpreter::new(environment.clone());
         match interpreter.interpret(expr) {
             Ok(result) => println!("{}", result),
             Err(e) => {
