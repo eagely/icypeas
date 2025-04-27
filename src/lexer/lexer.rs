@@ -1,4 +1,5 @@
 use super::enums::{Location, Token, TokenKind, TokenValue};
+use crate::err;
 use crate::error::{Error, ErrorKind, Result};
 use std::rc::Rc;
 
@@ -232,10 +233,10 @@ impl Lexer {
                 ));
             }
         }
-        Err(Error::with_help(
+        err!(
             ErrorKind::UnterminatedString,
             self.location(),
-            "Consider inserting a \" after this string",
-        ))
+            "Consider inserting a \" after this string"
+        )
     }
 }

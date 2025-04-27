@@ -1,3 +1,4 @@
+#![macro_use]
 mod error;
 mod interpreter;
 mod lexer;

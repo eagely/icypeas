@@ -1,4 +1,5 @@
-use crate::error::{Error, ErrorKind, Result};
+use crate::err;
+use crate::error::{ErrorKind, Result};
 use crate::lexer::enums::{Token, TokenValue};
 use crate::parser::enums::Expression;
 use std::fmt::{Display, Formatter};
@@ -26,11 +27,11 @@ impl TryFrom<&Token> for Value {
             TokenValue::Integer(integer) => Ok(Value::Integer(integer.clone())),
             TokenValue::None => Ok(Value::None),
             TokenValue::String(string) => Ok(Value::String(string.clone())),
-            _ => Err(Error::with_help(
+            _ => err!(
                 ErrorKind::InvalidToken,
                 Rc::clone(&value.location),
-                "Token could not be converted into a value.",
-            )),
+                "Token could not be converted into a value."
+            ),
         }
     }
 }

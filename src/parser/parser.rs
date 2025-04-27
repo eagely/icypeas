@@ -1,5 +1,6 @@
 use super::enums::Expression;
-use crate::error::{Error, ErrorKind, Result};
+use crate::err;
+use crate::error::{ErrorKind, Result};
 use crate::lexer::enums::{Token, TokenKind};
 use crate::parser::enums::ExpressionKind;
 use crate::parser::precedence::Precedence;
@@ -132,11 +133,11 @@ impl Parser {
                     location,
                 ))
             }
-            _ => Err(Error::with_help(
+            _ => err!(
                 ErrorKind::ExpectedExpression,
                 location,
-                "This should be an identifier.",
-            )),
+                "This should be an identifier."
+            ),
         }
     }
 
@@ -187,11 +188,11 @@ impl Parser {
         let name = self.current().ok_or(ErrorKind::ExpectedExpression)?;
 
         if !self.next_is(1, TokenKind::Identifier) {
-            return Err(Error::with_help(
+            return err!(
                 ErrorKind::ExpectedExpression,
                 Rc::clone(&name.location),
-                "Missing parameter for function assignment.",
-            ));
+                "Missing parameter for function assignment."
+            );
         }
 
         self.advance();
@@ -377,19 +378,19 @@ impl Parser {
                 self.advance();
                 let expression = self.parse_expression()?;
                 if !try_consume_any!(*self, TokenKind::RightParenthesis) {
-                    return Err(Error::with_help(
+                    return err!(
                         ErrorKind::MissingClosingParenthesis,
                         token.location,
-                        "Consider inserting a ')' after this expression.",
-                    ));
+                        "Consider inserting a ')' after this expression."
+                    );
                 }
                 Ok(expression)
             }
-            _ => Err(Error::with_help(
+            _ => err!(
                 ErrorKind::ExpectedExpression,
                 token.location,
-                "This is not valid syntax.",
-            )),
+                "This is not valid syntax."
+            ),
         }
     }
 }
