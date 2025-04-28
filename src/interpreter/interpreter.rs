@@ -367,9 +367,7 @@ impl Interpreter {
                     expression.location.clone(),
                 ))?
             }
-            ExpressionKind::Lambda { parameters, body } => {
-                todo!();
-            }
+            ExpressionKind::Lambda { parameter, body } => Ok(Value::Function { parameter, body }),
             ExpressionKind::Literal { token } => (&token).try_into(),
         }
     }

@@ -4,7 +4,6 @@ use crate::error::{ErrorKind, Result};
 use crate::lexer::enums::{Token, TokenKind};
 use crate::parser::enums::ExpressionKind;
 use crate::parser::precedence::Precedence;
-use std::rc::Rc;
 
 macro_rules! try_consume_any {
     ($self:expr, $($token_type:expr),+) => {{
@@ -142,21 +141,19 @@ impl Parser {
     }
 
     fn parse_lambda(&mut self) -> Result<Expression> {
-        if self.tokens[self.index..]
-            .iter()
-            .skip_while(|t| t.kind == TokenKind::Identifier)
-            .next()
-            .map_or(true, |t| t.kind != TokenKind::Dollar)
+        if !self.current_is(TokenKind::Identifier)
+            || self.tokens[self.index..]
+                .iter()
+                .skip_while(|t| t.kind == TokenKind::Identifier)
+                .next()
+                .map_or(true, |t| t.kind != TokenKind::Dollar)
         {
             return self.parse_assignment();
         }
 
-        let mut parameters = Vec::new();
+        let parameter = self.current().ok_or(ErrorKind::UnexpectedEndOfFile)?;
 
-        while self.current_is(TokenKind::Identifier) {
-            parameters.push(self.current().ok_or(ErrorKind::UnexpectedEndOfFile)?);
-            self.advance();
-        }
+        self.advance();
 
         if self.current_is(TokenKind::Dollar) {
             try_consume_any!(*self, TokenKind::Dollar);
@@ -164,7 +161,7 @@ impl Parser {
             let location = body.location.clone();
             Ok(Expression::new(
                 ExpressionKind::Lambda {
-                    parameters,
+                    parameter,
                     body: Box::new(body),
                 },
                 location,
@@ -185,7 +182,7 @@ impl Parser {
             return self.parse_if();
         }
 
-        let name = self.current().ok_or(ErrorKind::ExpectedExpression)?;
+        let name = self.current().ok_or(ErrorKind::UnexpectedEndOfFile)?;
 
         if !self.next_is(1, TokenKind::Identifier) {
             return err!(
