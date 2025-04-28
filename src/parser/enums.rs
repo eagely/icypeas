@@ -33,7 +33,7 @@ pub enum ExpressionKind {
         otherwise: Option<Box<Expression>>,
     },
     Lambda {
-        parameters: Vec<Token>,
+        parameter: Token,
         body: Box<Expression>,
     },
     Literal {

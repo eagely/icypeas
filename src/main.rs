@@ -13,18 +13,18 @@ fn main() {
     let source = r#"
         selectFirst s = f
         churchTrue f = selectFirst
-        
+
         selectSecond s = s
         churchFalse f = selectSecond
-        
+
         churchTrue 1 2
         churchFalse 1 2
-        
+
         addTwice1 s = f + s + s
         addTwice f = addTwice1
-        
+
         addTwice 1 10
-        
+
         1 == 1
         3 + 4
         10 - 5
@@ -41,8 +41,15 @@ fn main() {
         10 <= 10
         15 > 5
         15 >= 15
-        
-        (x $ x+2) 1 
+
+        !false
+        !true
+        -7
+        -(-7)
+
+        (y $ (x $ y)) 1 2
+        (y $ (x $ x)) 1 2
+        (x $ x+2) 1
     "#;
     println!("Source: {}", source);
 
