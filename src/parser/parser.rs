@@ -61,15 +61,15 @@ impl Parser {
     }
 
     fn current_is(&self, kind: TokenKind) -> bool {
-        self.current().map_or(false, |t| t.kind == kind)
+        self.current().is_some_and(|t| t.kind == kind)
     }
 
     fn next_is(&self, n: usize, kind: TokenKind) -> bool {
-        self.next(n).map_or(false, |t| t.kind == kind)
+        self.next(n).is_some_and(|t| t.kind == kind)
     }
 
     fn previous_is(&self, n: usize, kind: TokenKind) -> bool {
-        self.previous(n).map_or(false, |t| t.kind == kind)
+        self.previous(n).is_some_and(|t| t.kind == kind)
     }
 
     fn is_eof(&self) -> bool {
@@ -146,7 +146,7 @@ impl Parser {
                 .iter()
                 .skip_while(|t| t.kind == TokenKind::Identifier)
                 .next()
-                .map_or(true, |t| t.kind != TokenKind::Dollar)
+                .is_none_or(|t| t.kind != TokenKind::Dollar)
         {
             return self.parse_assignment();
         }
@@ -177,7 +177,7 @@ impl Parser {
                 .iter()
                 .skip_while(|t| t.kind.is_primary())
                 .next()
-                .map_or(true, |t| t.kind != TokenKind::Equal)
+                .is_none_or(|t| t.kind != TokenKind::Equal)
         {
             return self.parse_if();
         }

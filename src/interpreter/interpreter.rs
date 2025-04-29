@@ -255,7 +255,7 @@ impl Interpreter {
                     let right_value = self.evaluate(*right)?;
                     match (left_value, right_value) {
                         (Value::Integer(l), Value::Integer(r)) => Ok(Value::Boolean(l > r)),
-                        (Value::Boolean(l), Value::Boolean(r)) => Ok(Value::Boolean(l > r)),
+                        (Value::Boolean(l), Value::Boolean(r)) => Ok(Value::Boolean(l & !r)),
                         _ => err!(
                             ErrorKind::InvalidArguments,
                             operator.location.clone(),
@@ -281,7 +281,7 @@ impl Interpreter {
                     let right_value = self.evaluate(*right)?;
                     match (left_value, right_value) {
                         (Value::Integer(l), Value::Integer(r)) => Ok(Value::Boolean(l < r)),
-                        (Value::Boolean(l), Value::Boolean(r)) => Ok(Value::Boolean(l < r)),
+                        (Value::Boolean(l), Value::Boolean(r)) => Ok(Value::Boolean(!l & r)),
                         _ => err!(
                             ErrorKind::InvalidArguments,
                             operator.location.clone(),
@@ -347,14 +347,11 @@ impl Interpreter {
                 let mut v = None;
                 let mut else_branch = true;
                 for branch in branches {
-                    match self.evaluate(*branch.0)? {
-                        Value::Boolean(b) => {
-                            if b && else_branch {
-                                v = Some(self.evaluate(*branch.1));
-                                else_branch = false;
-                            }
+                    if let Value::Boolean(b) = self.evaluate(*branch.0)? {
+                        if b && else_branch {
+                            v = Some(self.evaluate(*branch.1));
+                            else_branch = false;
                         }
-                        _ => {}
                     }
                 }
                 if else_branch {
