@@ -21,9 +21,9 @@ impl TryFrom<&Token> for Value {
     type Error = crate::error::Error;
     fn try_from(value: &Token) -> Result<Self> {
         match &value.value {
-            TokenValue::Boolean(boolean) => Ok(Self::Boolean(boolean.clone())),
-            TokenValue::Float(float) => Ok(Self::Float(float.clone())),
-            TokenValue::Integer(integer) => Ok(Value::Integer(integer.clone())),
+            TokenValue::Boolean(boolean) => Ok(Self::Boolean(*boolean)),
+            TokenValue::Float(float) => Ok(Self::Float(*float)),
+            TokenValue::Integer(integer) => Ok(Value::Integer(*integer)),
             TokenValue::None => Ok(Value::None),
             TokenValue::String(string) => Ok(Value::String(string.clone())),
             _ => err!(

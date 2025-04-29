@@ -133,7 +133,7 @@ impl Lexer {
                 '_' => TokenKind::Underscore,
                 '"' => return self.consume_string(),
                 _ => {
-                    if c.is_digit(10) {
+                    if c.is_ascii_digit() {
                         return self.consume_number();
                     } else if c.is_alphabetic() || c == '_' {
                         return self.consume_identifier();
