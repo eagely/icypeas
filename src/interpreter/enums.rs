@@ -23,9 +23,9 @@ impl TryFrom<&Token> for Value {
         match &value.value {
             TokenValue::Boolean(boolean) => Ok(Self::Boolean(*boolean)),
             TokenValue::Float(float) => Ok(Self::Float(*float)),
-            TokenValue::Integer(integer) => Ok(Value::Integer(*integer)),
-            TokenValue::None => Ok(Value::None),
-            TokenValue::String(string) => Ok(Value::String(string.clone())),
+            TokenValue::Integer(integer) => Ok(Self::Integer(*integer)),
+            TokenValue::None => Ok(Self::None),
+            TokenValue::String(string) => Ok(Self::String(string.clone())),
             _ => err!(
                 ErrorKind::InvalidToken,
                 value.location.clone(),
@@ -38,12 +38,12 @@ impl TryFrom<&Token> for Value {
 impl Display for Value {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Value::Boolean(boolean) => write!(f, "{}", boolean),
-            Value::Float(float) => write!(f, "{}", float),
-            Value::Integer(integer) => write!(f, "{}", integer),
-            Value::None => write!(f, "None"),
-            Value::String(string) => write!(f, "{}", string),
-            Value::Function { parameter, body } => write!(f, "λ{:#?}.{:#?}", parameter, body),
+            Self::Boolean(boolean) => write!(f, "{boolean}"),
+            Self::Float(float) => write!(f, "{float}"),
+            Self::Integer(integer) => write!(f, "{integer}"),
+            Self::None => write!(f, "None"),
+            Self::String(string) => write!(f, "{string}"),
+            Self::Function { parameter, body } => write!(f, "λ{parameter:#?}.{body:#?}"),
         }
     }
 }

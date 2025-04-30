@@ -1,6 +1,6 @@
 use crate::lexer::enums::TokenKind;
 
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Precedence {
     None,
     Assignment,
@@ -17,21 +17,21 @@ pub enum Precedence {
 impl From<TokenKind> for Precedence {
     fn from(kind: TokenKind) -> Self {
         match kind {
-            TokenKind::Equal => Precedence::Assignment,
+            TokenKind::Equal => Self::Assignment,
             TokenKind::BangEqual
             | TokenKind::EqualEqual
             | TokenKind::Less
             | TokenKind::LessEqual
             | TokenKind::Greater
-            | TokenKind::GreaterEqual => Precedence::Comparison,
-            TokenKind::Plus | TokenKind::Minus => Precedence::Term,
-            TokenKind::Star | TokenKind::Slash | TokenKind::Percent => Precedence::Factor,
-            TokenKind::StarStar => Precedence::Exponentiation,
-            TokenKind::Pipe => Precedence::BitwiseOr,
-            TokenKind::Caret => Precedence::BitwiseXor,
-            TokenKind::Ampersand => Precedence::BitwiseAnd,
-            TokenKind::At | TokenKind::Colon | TokenKind::Hash => Precedence::Primary,
-            _ => Precedence::None,
+            | TokenKind::GreaterEqual => Self::Comparison,
+            TokenKind::Plus | TokenKind::Minus => Self::Term,
+            TokenKind::Star | TokenKind::Slash | TokenKind::Percent => Self::Factor,
+            TokenKind::StarStar => Self::Exponentiation,
+            TokenKind::Pipe => Self::BitwiseOr,
+            TokenKind::Caret => Self::BitwiseXor,
+            TokenKind::Ampersand => Self::BitwiseAnd,
+            TokenKind::At | TokenKind::Colon | TokenKind::Hash => Self::Primary,
+            _ => Self::None,
         }
     }
 }
