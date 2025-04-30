@@ -133,12 +133,12 @@ impl Lexer {
                 '_' => TokenKind::Underscore,
                 '"' => return self.consume_string(),
                 _ => {
-                    if c.is_ascii_digit() {
-                        return self.consume_number();
+                    return if c.is_ascii_digit() {
+                        self.consume_number()
                     } else if c.is_alphabetic() || c == '_' {
-                        return self.consume_identifier();
+                        self.consume_identifier()
                     } else {
-                        return Ok((TokenKind::Unknown, TokenValue::Unknown(c)));
+                        Ok((TokenKind::Unknown, TokenValue::Unknown(c)))
                     }
                 }
             },
@@ -217,7 +217,7 @@ impl Lexer {
             TokenValue::Integer(
                 number
                     .parse()
-                    .map_err(|_| Error::new(ErrorKind::NotANumber, self.location().clone()))?,
+                    .map_err(|_| Error::new(ErrorKind::NotANumber, self.location()))?,
             ),
         ))
     }

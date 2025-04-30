@@ -68,7 +68,7 @@ impl Token {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum TokenKind {
     LeftBrace,
     RightBrace,
@@ -134,24 +134,49 @@ pub enum TokenValue {
 }
 
 impl TokenKind {
-    pub fn is_primary(&self) -> bool {
-        match self {
-            TokenKind::If
-            | TokenKind::Elif
-            | TokenKind::Else
-            | TokenKind::For
-            | TokenKind::While
-            | TokenKind::Do
-            | TokenKind::Loop
-            | TokenKind::Fn
-            | TokenKind::Return
-            | TokenKind::True
-            | TokenKind::False
-            | TokenKind::Null
-            | TokenKind::Identifier
-            | TokenKind::Integer
-            | TokenKind::String => true,
-            _ => false,
-        }
+    pub const fn is_primary(self) -> bool {
+        matches!(
+            self,
+            Self::If
+                | Self::Elif
+                | Self::Else
+                | Self::For
+                | Self::While
+                | Self::Do
+                | Self::Loop
+                | Self::Fn
+                | Self::Return
+                | Self::True
+                | Self::False
+                | Self::Null
+                | Self::Identifier
+                | Self::Integer
+                | Self::String
+        )
+    }
+
+    pub const fn is_operator(self) -> bool {
+        matches!(
+            self,
+            Self::Ampersand
+                | Self::Caret
+                | Self::Pipe
+                | Self::Plus
+                | Self::Minus
+                | Self::Star
+                | Self::StarStar
+                | Self::Slash
+                | Self::Percent
+                | Self::BangEqual
+                | Self::Equal
+                | Self::EqualEqual
+                | Self::Less
+                | Self::LessEqual
+                | Self::Greater
+                | Self::GreaterEqual
+                | Self::At
+                | Self::Colon
+                | Self::Hash
+        )
     }
 }

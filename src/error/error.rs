@@ -56,16 +56,16 @@ impl Display for ErrorKind {
             Self::UnsupportedExpression => "Unsupported Expression",
             Self::UnterminatedString => "Unterminated string",
         };
-        write!(f, "{}", message)
+        write!(f, "{message}")
     }
 }
 
 impl Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let location_str = match &self.location {
-            Some(location) => format!("at {}", location),
-            None => "at unknown location (probably end of file)".to_string(),
-        };
+        let location_str = &self.location.as_ref().map_or_else(
+            || "at unknown location (probably end of file)".to_string(),
+            |location| format!("at {location}"),
+        );
 
         if let Some(help) = &self.help {
             write!(f, "{} {}\nHelp: {}", self.kind, location_str, help)
@@ -76,7 +76,7 @@ impl Display for Error {
 }
 
 impl Error {
-    pub fn new(kind: ErrorKind, location: Rc<Location>) -> Self {
+    pub const fn new(kind: ErrorKind, location: Rc<Location>) -> Self {
         Self {
             kind,
             location: Some(location),

@@ -48,7 +48,7 @@ pub struct Expression {
 }
 
 impl Expression {
-    pub fn new(kind: ExpressionKind, location: Rc<Location>) -> Self {
+    pub const fn new(kind: ExpressionKind, location: Rc<Location>) -> Self {
         Self { kind, location }
     }
 }

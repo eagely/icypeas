@@ -13,7 +13,7 @@ pub struct Interpreter {
 }
 
 impl Interpreter {
-    pub fn new(environment: Rc<RefCell<Environment>>) -> Self {
+    pub const fn new(environment: Rc<RefCell<Environment>>) -> Self {
         Self { environment }
     }
 
@@ -28,7 +28,7 @@ impl Interpreter {
                 parameter,
                 body,
             } => {
-                let name: String = name.get_identifier_name().ok_or(Error::with_help(
+                let name: String = name.get_identifier_name().ok_or_else(|| Error::with_help(
                     ErrorKind::InvalidToken,
                     expression.location.clone(),
                     "Function name must be an identifier",
@@ -49,7 +49,7 @@ impl Interpreter {
                         Value::Boolean(b) => Ok(Value::Boolean(!b)),
                         _ => err!(
                             ErrorKind::InvalidArguments,
-                            operator.location.clone(),
+                            operator.location,
                             "Invalid type for logical NOT",
                         ),
                     }
@@ -60,7 +60,7 @@ impl Interpreter {
                         Value::Integer(i) => Ok(Value::Integer(-i)),
                         _ => err!(
                             ErrorKind::InvalidArguments,
-                            operator.location.clone(),
+                            operator.location,
                             "Invalid type for negation",
                         ),
                     }
@@ -84,7 +84,7 @@ impl Interpreter {
                         (Value::String(l), Value::String(r)) => Ok(Value::String(l + &r)),
                         _ => err!(
                             ErrorKind::InvalidArguments,
-                            operator.location.clone(),
+                            operator.location,
                             "Invalid types for addition",
                         ),
                     }
@@ -96,7 +96,7 @@ impl Interpreter {
                         (Value::Integer(l), Value::Integer(r)) => Ok(Value::Integer(l - r)),
                         _ => err!(
                             ErrorKind::InvalidArguments,
-                            operator.location.clone(),
+                            operator.location,
                             "Invalid types for subtraction",
                         ),
                     }
@@ -108,7 +108,7 @@ impl Interpreter {
                         (Value::Integer(l), Value::Integer(r)) => Ok(Value::Integer(l * r)),
                         _ => err!(
                             ErrorKind::InvalidArguments,
-                            operator.location.clone(),
+                            operator.location,
                             "Invalid types for multiplication",
                         ),
                     }
@@ -125,26 +125,26 @@ impl Interpreter {
                                     Err(if r > 0 {
                                         Error::with_help(
                                             ErrorKind::Overflow,
-                                            operator.location.clone(),
+                                            operator.location,
                                             "Exponent too large",
                                         )
                                     } else {
                                         Error::with_help(
                                             ErrorKind::InvalidArguments,
-                                            operator.location.clone(),
+                                            operator.location,
                                             "Exponent must be a non-negative integer",
                                         )
                                     })
                                 };
                             };
-                            Ok(Value::Integer(l.checked_pow(exp).ok_or(Error::new(
+                            Ok(Value::Integer(l.checked_pow(exp).ok_or_else(|| Error::new(
                                 ErrorKind::Overflow,
-                                operator.location.clone(),
+                                operator.location,
                             ))?))
                         }
                         _ => err!(
                             ErrorKind::InvalidArguments,
-                            operator.location.clone(),
+                            operator.location,
                             "Invalid types for exponentiation",
                         ),
                     }
@@ -155,14 +155,14 @@ impl Interpreter {
                     match (left_value, right_value) {
                         (Value::Integer(l), Value::Integer(r)) => {
                             if r == 0 {
-                                err!(ErrorKind::DivisionByZero, operator.location.clone())
+                                err!(ErrorKind::DivisionByZero, operator.location)
                             } else {
                                 Ok(Value::Integer(l / r))
                             }
                         }
                         _ => err!(
                             ErrorKind::InvalidArguments,
-                            operator.location.clone(),
+                            operator.location,
                             "Invalid types for division",
                         ),
                     }
@@ -173,14 +173,14 @@ impl Interpreter {
                     match (left_value, right_value) {
                         (Value::Integer(l), Value::Integer(r)) => {
                             if r == 0 {
-                                err!(ErrorKind::DivisionByZero, operator.location.clone())
+                                err!(ErrorKind::DivisionByZero, operator.location)
                             } else {
                                 Ok(Value::Integer(l % r))
                             }
                         }
                         _ => err!(
                             ErrorKind::InvalidArguments,
-                            operator.location.clone(),
+                            operator.location,
                             "Invalid types for modulo",
                         ),
                     }
@@ -193,7 +193,7 @@ impl Interpreter {
                         (Value::Boolean(l), Value::Boolean(r)) => Ok(Value::Boolean(l & r)),
                         _ => err!(
                             ErrorKind::InvalidArguments,
-                            operator.location.clone(),
+                            operator.location,
                             "Invalid types for logical AND",
                         ),
                     }
@@ -206,7 +206,7 @@ impl Interpreter {
                         (Value::Boolean(l), Value::Boolean(r)) => Ok(Value::Boolean(l | r)),
                         _ => err!(
                             ErrorKind::InvalidArguments,
-                            operator.location.clone(),
+                            operator.location,
                             "Invalid types for logical OR",
                         ),
                     }
@@ -219,7 +219,7 @@ impl Interpreter {
                         (Value::Boolean(l), Value::Boolean(r)) => Ok(Value::Boolean(l ^ r)),
                         _ => err!(
                             ErrorKind::InvalidArguments,
-                            operator.location.clone(),
+                            operator.location,
                             "Invalid types for logical XOR",
                         ),
                     }
@@ -232,7 +232,7 @@ impl Interpreter {
                         (Value::Boolean(l), Value::Boolean(r)) => Ok(Value::Boolean(l != r)),
                         _ => err!(
                             ErrorKind::InvalidArguments,
-                            operator.location.clone(),
+                            operator.location,
                             "Invalid types for inequality",
                         ),
                     }
@@ -245,7 +245,7 @@ impl Interpreter {
                         (Value::Boolean(l), Value::Boolean(r)) => Ok(Value::Boolean(l == r)),
                         _ => err!(
                             ErrorKind::InvalidArguments,
-                            operator.location.clone(),
+                            operator.location,
                             "Invalid types for equality",
                         ),
                     }
@@ -255,10 +255,10 @@ impl Interpreter {
                     let right_value = self.evaluate(*right)?;
                     match (left_value, right_value) {
                         (Value::Integer(l), Value::Integer(r)) => Ok(Value::Boolean(l > r)),
-                        (Value::Boolean(l), Value::Boolean(r)) => Ok(Value::Boolean(l & !r)),
+                        (Value::Boolean(l), Value::Boolean(r)) => Ok(Value::Boolean(l && !r)),
                         _ => err!(
                             ErrorKind::InvalidArguments,
-                            operator.location.clone(),
+                            operator.location,
                             "Invalid types for greater than",
                         ),
                     }
@@ -271,7 +271,7 @@ impl Interpreter {
                         (Value::Boolean(l), Value::Boolean(r)) => Ok(Value::Boolean(l >= r)),
                         _ => err!(
                             ErrorKind::InvalidArguments,
-                            operator.location.clone(),
+                            operator.location,
                             "Invalid types for greater than or equal to",
                         ),
                     }
@@ -284,7 +284,7 @@ impl Interpreter {
                         (Value::Boolean(l), Value::Boolean(r)) => Ok(Value::Boolean(!l & r)),
                         _ => err!(
                             ErrorKind::InvalidArguments,
-                            operator.location.clone(),
+                            operator.location,
                             "Invalid types for less than",
                         ),
                     }
@@ -297,7 +297,7 @@ impl Interpreter {
                         (Value::Boolean(l), Value::Boolean(r)) => Ok(Value::Boolean(l <= r)),
                         _ => err!(
                             ErrorKind::InvalidArguments,
-                            operator.location.clone(),
+                            operator.location,
                             "Invalid types for less than or equal to",
                         ),
                     }
@@ -314,10 +314,9 @@ impl Interpreter {
 
                 match function_value {
                     Value::Function { parameter, body } => {
-                        let parameter_name = parameter.get_identifier_name().ok_or(Error::new(
-                            ErrorKind::InvalidToken,
-                            parameter.location.clone(),
-                        ))?;
+                        let parameter_name = parameter
+                            .get_identifier_name()
+                            .ok_or_else(|| Error::new(ErrorKind::InvalidToken, parameter.location))?;
                         let evaluated_argument = self.evaluate(*argument)?;
                         self.environment
                             .borrow_mut()
@@ -335,9 +334,11 @@ impl Interpreter {
                 todo!()
             }
             ExpressionKind::Identifier { token } => match &token.value {
-                TokenValue::Identifier(name) => self.environment.borrow().get(name).ok_or(
-                    Error::new(ErrorKind::InvalidIdentifier, token.location.clone()),
-                ),
+                TokenValue::Identifier(name) => {
+                    self.environment.borrow().get(name).ok_or_else(|| {
+                        Error::new(ErrorKind::InvalidIdentifier, token.location.clone())
+                    })
+                }
                 _ => err!(ErrorKind::UnsupportedExpression, token.location.clone()),
             },
             ExpressionKind::If {
@@ -359,10 +360,7 @@ impl Interpreter {
                         v = Some(self.evaluate(*o));
                     }
                 }
-                v.ok_or(Error::new(
-                    ErrorKind::IncompleteIf,
-                    expression.location.clone(),
-                ))?
+                v.ok_or_else(|| Error::new(ErrorKind::IncompleteIf, expression.location.clone()))?
             }
             ExpressionKind::Lambda { parameter, body } => Ok(Value::Function { parameter, body }),
             ExpressionKind::Literal { token } => (&token).try_into(),

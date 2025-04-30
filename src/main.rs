@@ -1,3 +1,5 @@
+#![warn(clippy::all, clippy::pedantic, clippy::nursery, clippy::cargo)]
+#![allow(clippy::module_inception)]
 #![macro_use]
 mod error;
 mod interpreter;
@@ -10,7 +12,7 @@ use parser::parser::Parser;
 use std::{cell::RefCell, rc::Rc};
 
 fn main() {
-    let source = r#"
+    let source = r"
         selectFirst s = f
         churchTrue f = selectFirst
 
@@ -50,8 +52,8 @@ fn main() {
         (y $ (x $ y)) 1 2
         (y $ (x $ x)) 1 2
         (x $ x+2) 1
-    "#;
-    println!("Source: {}", source);
+    ";
+    println!("Source: {source}");
 
     let mut lexer = Lexer::new(source);
     let tokens = match lexer.lex() {
@@ -60,7 +62,7 @@ fn main() {
             tokens
         }
         Err(e) => {
-            eprintln!("Lexer error: {}", e);
+            eprintln!("Lexer error: {e}");
             return;
         }
     };
@@ -72,7 +74,7 @@ fn main() {
             ast
         }
         Err(e) => {
-            eprintln!("Parser error: {}", e);
+            eprintln!("Parser error: {e}");
             return;
         }
     };
@@ -81,9 +83,9 @@ fn main() {
     for expr in ast {
         let mut interpreter = Interpreter::new(environment.clone());
         match interpreter.interpret(expr) {
-            Ok(result) => println!("{}", result),
+            Ok(result) => println!("{result}"),
             Err(e) => {
-                eprintln!("Interpreter error: {}", e);
+                eprintln!("Interpreter error: {e}");
                 return;
             }
         }
