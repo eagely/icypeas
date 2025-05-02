@@ -1,7 +1,7 @@
 use crate::err;
 use crate::error::{ErrorKind, Result};
-use crate::lexer::enums::{Token, TokenValue};
-use crate::parser::enums::Expression;
+use crate::model::Expression;
+use crate::model::{Token, TokenValue};
 use std::fmt::{Display, Formatter};
 
 #[derive(Clone, Debug)]

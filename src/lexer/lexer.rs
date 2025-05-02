@@ -1,6 +1,7 @@
-use super::enums::{Location, Token, TokenKind, TokenValue};
 use crate::err;
 use crate::error::{Error, ErrorKind, Result};
+use crate::model::Location;
+use crate::model::{Token, TokenKind, TokenValue};
 use std::rc::Rc;
 
 pub struct Lexer {
