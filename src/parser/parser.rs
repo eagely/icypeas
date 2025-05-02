@@ -1,8 +1,9 @@
-use super::enums::Expression;
 use crate::err;
 use crate::error::{ErrorKind, Result};
-use crate::lexer::enums::{Token, TokenKind};
-use crate::parser::enums::ExpressionKind;
+use crate::model::Expression;
+use crate::model::ExpressionKind;
+use crate::model::Token;
+use crate::model::TokenKind;
 use crate::parser::precedence::Precedence;
 
 macro_rules! try_consume_any {

@@ -1,9 +1,9 @@
-use crate::lexer::enums::Location;
+use crate::model::Location;
 use std::{fmt::Display, rc::Rc};
 
 #[macro_export]
 macro_rules! err {
-    ($kind:expr, $location:expr $(,)? ) => {
+    ($kind:expr, $location:expr $(,)?) => {
         Err($crate::error::Error::new($kind, $location))
     };
     ($kind:expr, $location:expr, $help:expr $(,)?) => {

@@ -4,6 +4,7 @@
 mod error;
 mod interpreter;
 mod lexer;
+mod model;
 mod parser;
 
 use interpreter::{environment::Environment, interpreter::Interpreter};

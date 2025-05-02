@@ -1,5 +1,4 @@
-use crate::lexer::enums::{Location, Token};
-use std::rc::Rc;
+use super::{Expression, Token};
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum ExpressionKind {
@@ -39,16 +38,4 @@ pub enum ExpressionKind {
     Literal {
         token: Token,
     },
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct Expression {
-    pub kind: ExpressionKind,
-    pub location: Rc<Location>,
-}
-
-impl Expression {
-    pub const fn new(kind: ExpressionKind, location: Rc<Location>) -> Self {
-        Self { kind, location }
-    }
 }

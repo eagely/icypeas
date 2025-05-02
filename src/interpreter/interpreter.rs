@@ -1,9 +1,10 @@
-use super::enums::Value;
+use crate::model::Value;
 use super::environment::Environment;
 use crate::err;
 use crate::error::{Error, ErrorKind, Result};
-use crate::lexer::enums::{TokenKind, TokenValue};
-use crate::parser::enums::{Expression, ExpressionKind};
+use crate::model::TokenKind;
+use crate::model::TokenValue;
+use crate::model::{Expression, ExpressionKind};
 use std::cell::RefCell;
 use std::convert::TryInto;
 use std::rc::Rc;
@@ -28,11 +29,13 @@ impl Interpreter {
                 parameter,
                 body,
             } => {
-                let name: String = name.get_identifier_name().ok_or_else(|| Error::with_help(
-                    ErrorKind::InvalidToken,
-                    expression.location.clone(),
-                    "Function name must be an identifier",
-                ))?;
+                let name: String = name.get_identifier_name().ok_or_else(|| {
+                    Error::with_help(
+                        ErrorKind::InvalidToken,
+                        expression.location.clone(),
+                        "Function name must be an identifier",
+                    )
+                })?;
 
                 self.environment
                     .borrow_mut()
@@ -137,10 +140,9 @@ impl Interpreter {
                                     })
                                 };
                             };
-                            Ok(Value::Integer(l.checked_pow(exp).ok_or_else(|| Error::new(
-                                ErrorKind::Overflow,
-                                operator.location,
-                            ))?))
+                            Ok(Value::Integer(l.checked_pow(exp).ok_or_else(|| {
+                                Error::new(ErrorKind::Overflow, operator.location)
+                            })?))
                         }
                         _ => err!(
                             ErrorKind::InvalidArguments,
@@ -314,9 +316,9 @@ impl Interpreter {
 
                 match function_value {
                     Value::Function { parameter, body } => {
-                        let parameter_name = parameter
-                            .get_identifier_name()
-                            .ok_or_else(|| Error::new(ErrorKind::InvalidToken, parameter.location))?;
+                        let parameter_name = parameter.get_identifier_name().ok_or_else(|| {
+                            Error::new(ErrorKind::InvalidToken, parameter.location)
+                        })?;
                         let evaluated_argument = self.evaluate(*argument)?;
                         self.environment
                             .borrow_mut()
