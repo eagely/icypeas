@@ -14,19 +14,21 @@ use std::{cell::RefCell, rc::Rc};
 
 fn main() {
     let source = r"
-        selectFirst s = f
-        churchTrue f = selectFirst
-
-        selectSecond s = s
-        churchFalse f = selectSecond
-
+        churchTrue f s = f
         churchTrue 1 2
+
+        churchFalse f s = s
         churchFalse 1 2
 
-        addTwice1 s = f + s + s
-        addTwice f = addTwice1
+        add a b = a + b
+        add 4 7
 
+        addTwice f s = f + s + s
         addTwice 1 10
+
+        (y $ (x $ y)) 1 2
+        (y $ (x $ x)) 1 2
+        (x $ x+2) 1
 
         1 == 1
         3 + 4
@@ -49,10 +51,6 @@ fn main() {
         !true
         -7
         -(-7)
-
-        (y $ (x $ y)) 1 2
-        (y $ (x $ x)) 1 2
-        (x $ x+2) 1
     ";
     println!("Source: {source}");
 
