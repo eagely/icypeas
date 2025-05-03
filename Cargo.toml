@@ -2,7 +2,7 @@
 name = "icypeas"
 version = "0.1.0"
 authors = ["eagely"]
-edition = "2021"
+edition = "2024"
 description = "An interpreter for a functional programming language"
 readme = "README.md"
 repository = "https://github.com/eagely/icypeas"

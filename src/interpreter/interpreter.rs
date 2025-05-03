@@ -1,9 +1,9 @@
-use crate::model::Value;
 use super::environment::Environment;
 use crate::err;
 use crate::error::{Error, ErrorKind, Result};
 use crate::model::TokenKind;
 use crate::model::TokenValue;
+use crate::model::Value;
 use crate::model::{Expression, ExpressionKind};
 use std::cell::RefCell;
 use std::convert::TryInto;

@@ -140,7 +140,7 @@ impl Lexer {
                         self.consume_identifier()
                     } else {
                         Ok((TokenKind::Unknown, TokenValue::Unknown(c)))
-                    }
+                    };
                 }
             },
             TokenValue::None,
