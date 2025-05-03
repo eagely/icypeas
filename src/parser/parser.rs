@@ -1,10 +1,11 @@
 use crate::err;
 use crate::error::{ErrorKind, Result};
-use crate::model::Expression;
 use crate::model::ExpressionKind;
 use crate::model::Token;
 use crate::model::TokenKind;
+use crate::model::{Expression, Location};
 use crate::parser::precedence::Precedence;
+use std::rc::Rc;
 
 macro_rules! try_consume_any {
     ($self:expr, $($token_type:expr),+) => {{
@@ -166,18 +167,55 @@ impl Parser {
 
         self.advance();
 
-        let parameter = self.current().ok_or(ErrorKind::UnexpectedEndOfFile)?;
+        let mut parameters = Vec::new();
+
+        while let Some(t) = self.current() {
+            if !t.kind.is_primary() {
+                break;
+            }
+            parameters.push(t);
+            self.advance();
+        }
 
         self.advance();
-        self.advance();
 
-        let body = Box::new(self.parse_expression()?);
+        let body = self.parse_expression()?;
         let location = body.location.clone();
+        Self::curry_assignment(name, parameters, body, location)
+    }
+
+    fn curry_assignment(
+        name: Token,
+        parameters: Vec<Token>,
+        body: Expression,
+        location: Rc<Location>,
+    ) -> Result<Expression> {
+        let mut curried_lambda = body;
+
+        let mut parameters = parameters.into_iter();
+        let Some(first) = parameters.next() else {
+            return err!(
+                ErrorKind::MissingParameter,
+                location,
+                "Expected at least one parameter in a function assignment."
+            );
+        };
+
+        for parameter in parameters.rev() {
+            curried_lambda = Expression::new(
+                ExpressionKind::Lambda {
+                    parameter: parameter.clone(),
+                    body: Box::new(curried_lambda),
+                },
+                location.clone(),
+            );
+        }
+
         Ok(Expression::new(
             ExpressionKind::Assignment {
                 name,
-                parameter,
-                body,
+                parameter: first,
+                body: Box::new(curried_lambda),
             },
             location,
         ))
