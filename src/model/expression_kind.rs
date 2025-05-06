@@ -29,7 +29,7 @@ pub enum ExpressionKind {
     },
     If {
         branches: Vec<(Box<Expression>, Box<Expression>)>,
-        otherwise: Option<Box<Expression>>,
+        otherwise: Box<Expression>,
     },
     Lambda {
         parameter: Token,

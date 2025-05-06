@@ -34,6 +34,7 @@ pub enum TokenKind {
     Semicolon,
     Underscore,
     If,
+    Then,
     Elif,
     Else,
     For,
@@ -56,10 +57,7 @@ impl TokenKind {
     pub const fn is_primary(self) -> bool {
         matches!(
             self,
-            Self::If
-                | Self::Elif
-                | Self::Else
-                | Self::For
+            Self::For
                 | Self::While
                 | Self::Do
                 | Self::Loop
@@ -67,6 +65,7 @@ impl TokenKind {
                 | Self::Return
                 | Self::True
                 | Self::False
+                | Self::LeftParenthesis
                 | Self::Null
                 | Self::Identifier
                 | Self::Integer

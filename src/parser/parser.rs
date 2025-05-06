@@ -222,39 +222,65 @@ impl Parser {
     }
 
     fn parse_if(&mut self) -> Result<Expression> {
+        let index = self.index;
+
         if !self.current_is(TokenKind::If) {
+            self.index = index;
             return self.parse_binary();
         }
 
         self.advance();
-        let condition = Box::new(self.parse_expression()?);
-        let body = Box::new(self.parse_expression()?);
+
+        let condition = self.parse_expression()?;
         let location = condition.location.clone();
 
-        let mut branches = vec![(condition, body)];
+        if !self.current_is(TokenKind::Then) {
+            return err!(
+                ErrorKind::IncompleteIf,
+                location,
+                "Missing then keyword after if condition."
+            );
+        }
+
+        self.advance();
+
+        let body = self.parse_expression()?;
+
+        let mut branches = vec![(Box::new(condition), Box::new(body))];
         while self.current_is(TokenKind::Elif) {
             self.advance();
             let condition = self.parse_expression()?;
+            let location = condition.location.clone();
+
+            if !self.current_is(TokenKind::Then) {
+                return err!(
+                    ErrorKind::IncompleteIf,
+                    location,
+                    "Missing then keyword after if condition."
+                );
+            }
+
+            self.advance();
+
             let body = self.parse_expression()?;
 
             branches.push((Box::new(condition), Box::new(body)));
-
-            if !self.current_is(TokenKind::Elif) {
-                break;
-            }
         }
 
-        let otherwise = if self.current_is(TokenKind::Else) {
-            self.advance();
-            Some(Box::new(self.parse_expression()?))
-        } else {
-            None
-        };
+        if !self.current_is(TokenKind::Else) {
+            return err!(
+                ErrorKind::IncompleteIf,
+                location,
+                "Missing else branch in if expression."
+            );
+        }
+
+        self.advance();
 
         Ok(Expression::new(
             ExpressionKind::If {
                 branches,
-                otherwise,
+                otherwise: Box::new(self.parse_expression()?),
             },
             location,
         ))

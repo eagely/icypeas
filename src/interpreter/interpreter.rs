@@ -347,22 +347,20 @@ impl Interpreter {
                 branches,
                 otherwise,
             } => {
-                let mut v = None;
-                let mut else_branch = true;
-                for branch in branches {
-                    if let Value::Boolean(b) = self.evaluate(*branch.0)? {
-                        if b && else_branch {
-                            v = Some(self.evaluate(*branch.1));
-                            else_branch = false;
-                        }
-                    }
+                let true_branch = branches
+                    .into_iter()
+                    .map(|(cond, expr)| match self.evaluate(*cond)? {
+                        Value::Boolean(true) => Ok(Some(*expr)),
+                        _ => Ok(None),
+                    })
+                    .find_map(Result::transpose)
+                    .transpose()?;
+
+                if let Some(b) = true_branch {
+                    self.evaluate(b)
+                } else {
+                    self.evaluate(*otherwise)
                 }
-                if else_branch {
-                    if let Some(o) = otherwise {
-                        v = Some(self.evaluate(*o));
-                    }
-                }
-                v.ok_or_else(|| Error::new(ErrorKind::IncompleteIf, expression.location.clone()))?
             }
             ExpressionKind::Lambda { parameter, body } => Ok(Value::Function { parameter, body }),
             ExpressionKind::Literal { token } => (&token).try_into(),
