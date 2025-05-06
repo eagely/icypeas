@@ -4,6 +4,7 @@ use crate::model::TokenKind;
 pub enum Precedence {
     None,
     Assignment,
+    Conditional,
     Comparison,
     Term,
     Factor,
@@ -18,6 +19,7 @@ impl From<TokenKind> for Precedence {
     fn from(kind: TokenKind) -> Self {
         match kind {
             TokenKind::Equal => Self::Assignment,
+            TokenKind::If => Self::Conditional,
             TokenKind::BangEqual
             | TokenKind::EqualEqual
             | TokenKind::Less

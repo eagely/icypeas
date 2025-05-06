@@ -161,6 +161,7 @@ impl Lexer {
 
         Ok(match identifier.as_str() {
             "if" => (TokenKind::If, TokenValue::None),
+            "then" => (TokenKind::Then, TokenValue::None),
             "elif" => (TokenKind::Elif, TokenValue::None),
             "else" => (TokenKind::Else, TokenValue::None),
             "for" => (TokenKind::For, TokenValue::None),

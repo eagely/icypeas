@@ -51,6 +51,19 @@ fn main() {
         !true
         -7
         -(-7)
+       
+        if false then 1 else 2
+        if true then 2 else 1
+        if false then 1 elif false then 3 else 2
+        if (2 + 1) == 3 then 2 else 1
+        if 2 + 1 == 3 then 2 else 1
+        if 2 + 1 != 3 then 1 else 2
+        
+        twoIfOneElseOne x = if x == 1 then 2 else 1
+        twoIfOneElseOne 1
+        twoIfOneElseOne 17
+        
+        add 2 (if false then 1 else 2)
     ";
     println!("Source: {source}");
 
