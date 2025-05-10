@@ -37,12 +37,6 @@ pub enum TokenKind {
     Then,
     Elif,
     Else,
-    For,
-    While,
-    Do,
-    Loop,
-    Fn,
-    Return,
     True,
     False,
     Null,
@@ -57,13 +51,7 @@ impl TokenKind {
     pub const fn is_primary(self) -> bool {
         matches!(
             self,
-            Self::For
-                | Self::While
-                | Self::Do
-                | Self::Loop
-                | Self::Fn
-                | Self::Return
-                | Self::True
+            Self::True
                 | Self::False
                 | Self::LeftParenthesis
                 | Self::Null
