@@ -26,12 +26,13 @@ pub struct Parser {
 }
 
 impl Parser {
-    pub const fn new(tokens: Vec<Token>) -> Self {
-        Self { tokens, index: 0 }
+    pub const fn new() -> Self {
+        Self { tokens: vec![], index: 0 }
     }
 
-    pub fn parse(&mut self) -> Result<Vec<Expression>> {
-        let mut expressions = Vec::new();
+    pub fn parse(&mut self, tokens: Vec<Token>) -> Result<Vec<Expression>> {
+        self.tokens = tokens;
+        let mut expressions = vec![];
 
         while !self.is_eof() {
             if try_consume_any!(*self, TokenKind::Semicolon, TokenKind::Newline) {
@@ -94,7 +95,7 @@ impl Parser {
             TokenKind::Identifier => {
                 self.advance();
                 self.advance();
-                let mut types = Vec::new();
+                let mut types = vec![];
                 while self.current_is(TokenKind::Underscore)
                     || self.current_is(TokenKind::Identifier)
                 {
@@ -167,7 +168,7 @@ impl Parser {
 
         self.advance();
 
-        let mut parameters = Vec::new();
+        let mut parameters = vec![];
 
         while let Some(t) = self.current() {
             if !t.kind.is_primary() {

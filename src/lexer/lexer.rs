@@ -12,17 +12,18 @@ pub struct Lexer {
 }
 
 impl Lexer {
-    pub fn new(source: &str) -> Self {
+    pub const fn new() -> Self {
         Self {
-            source: source.chars().collect(),
+            source: vec![],
             index: 0,
             row: 0,
             bol: 0,
         }
     }
 
-    pub fn lex(&mut self) -> Result<Vec<Token>> {
-        let mut tokens = Vec::new();
+    pub fn lex(&mut self, source: &str) -> Result<Vec<Token>> {
+        self.source = source.chars().collect();
+        let mut tokens = vec![];
         while let Some(c) = self.current() {
             if c.is_whitespace() && c != '\n' {
                 self.advance();
