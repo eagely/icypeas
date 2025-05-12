@@ -7,19 +7,31 @@ mod lexer;
 mod model;
 mod parser;
 
+use error::Result;
 use interpreter::{environment::Environment, interpreter::Interpreter};
 use lexer::lexer::Lexer;
 use parser::parser::Parser;
-use std::{cell::RefCell, fs, process::ExitCode, rc::Rc};
+use std::{
+    cell::RefCell,
+    fs::{self, read_dir},
+    process::ExitCode,
+    rc::Rc,
+};
 
 fn main() -> ExitCode {
-    let tests = match fs::read_dir("tests") {
+    test()
+}
+
+fn test() -> ExitCode {
+    let tests = match read_dir("tests") {
         Ok(entries) => entries,
         Err(e) => {
             eprintln!("Error: Failed to read the tests directory: {e}");
             return ExitCode::FAILURE;
         }
     };
+
+    let mut failed_tests = Vec::new();
 
     for test in tests {
         let path = match test {
@@ -32,47 +44,44 @@ fn main() -> ExitCode {
         if path.is_file() {
             match fs::read_to_string(&path) {
                 Ok(content) => {
-                    println!("Running test: {}", path.display());
-                    run(&content);
+                    println!("\nRunning test: {}", path.display());
+                    match run(&content) {
+                        Ok(()) => println!("Test {} completed successfully", path.display()),
+                        Err(e) => {
+                            eprintln!("Test {} failed with error: {e}", path.display());
+                            failed_tests.push(path.display().to_string());
+                        }
+                    }
                 }
                 Err(e) => {
                     eprintln!("Failed to load test {}: {e}", path.display());
+                    return ExitCode::FAILURE;
                 }
             }
         }
     }
 
+    if !failed_tests.is_empty() {
+        eprintln!("The following tests failed:");
+        for test in failed_tests {
+            eprintln!("- {test}");
+        }
+        return ExitCode::FAILURE;
+    }
     ExitCode::SUCCESS
 }
 
-fn run(source: &str) {
+fn run(source: &str) -> Result<()> {
     let mut lexer = Lexer::new();
-    let tokens = match lexer.lex(source) {
-        Ok(tokens) => tokens,
-        Err(e) => {
-            eprintln!("Lexer error: {e}");
-            return;
-        }
-    };
+    let tokens = lexer.lex(source)?;
 
     let mut parser = Parser::new();
-    let ast = match parser.parse(tokens) {
-        Ok(ast) => ast,
-        Err(e) => {
-            eprintln!("Parser error: {e}");
-            return;
-        }
-    };
+    let ast = parser.parse(tokens)?;
 
     let environment = Rc::new(RefCell::new(Environment::new()));
     for expr in ast {
         let mut interpreter = Interpreter::new(environment.clone());
-        match interpreter.interpret(expr) {
-            Ok(result) => println!("{result}"),
-            Err(e) => {
-                eprintln!("Interpreter error: {e}");
-                return;
-            }
-        }
+        interpreter.interpret(expr)?;
     }
+    Ok(())
 }

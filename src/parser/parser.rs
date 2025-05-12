@@ -27,7 +27,10 @@ pub struct Parser {
 
 impl Parser {
     pub const fn new() -> Self {
-        Self { tokens: vec![], index: 0 }
+        Self {
+            tokens: vec![],
+            index: 0,
+        }
     }
 
     pub fn parse(&mut self, tokens: Vec<Token>) -> Result<Vec<Expression>> {
