@@ -43,16 +43,19 @@ fn test() -> ExitCode {
         };
         if path.is_file() {
             match fs::read_to_string(&path) {
-                Ok(content) => {
-                    println!("\nRunning test: {}", path.display());
-                    match run(&content) {
-                        Ok(()) => println!("Test {} completed successfully", path.display()),
-                        Err(e) => {
-                            eprintln!("Test {} failed with error: {e}", path.display());
-                            failed_tests.push(path.display().to_string());
-                        }
+                Ok(content) => match run(&content) {
+                    Ok(()) => println!(
+                        "\x1b[32mSUCCESS\x1b[0m {} completed successfully.",
+                        path.display()
+                    ),
+                    Err(e) => {
+                        eprintln!(
+                            "\x1b[31mFAILED\x1b[0m {} failed with error: {e}",
+                            path.display()
+                        );
+                        failed_tests.push(path.display().to_string());
                     }
-                }
+                },
                 Err(e) => {
                     eprintln!("Failed to load test {}: {e}", path.display());
                     return ExitCode::FAILURE;
