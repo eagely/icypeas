@@ -1,10 +1,10 @@
 use super::environment::Environment;
 use crate::err;
 use crate::error::{Error, ErrorKind, Result};
-use crate::model::TokenKind;
 use crate::model::TokenValue;
 use crate::model::Value;
 use crate::model::{Expression, ExpressionKind};
+use crate::model::{Statement, StatementKind, TokenKind};
 use std::cell::RefCell;
 use std::convert::TryInto;
 use std::rc::Rc;
@@ -18,13 +18,19 @@ impl Interpreter {
         Self { environment }
     }
 
-    pub fn interpret(&mut self, expression: Expression) -> Result<Value> {
-        self.evaluate(expression)
+    pub fn interpret(&mut self, statements: Vec<Statement>) -> Result<()> {
+        for statement in statements {
+            self.execute(statement)?;
+        }
+        Ok(())
     }
 
-    pub fn evaluate(&mut self, expression: Expression) -> Result<Value> {
-        match expression.kind {
-            ExpressionKind::Assignment {
+    fn execute(&mut self, statement: Statement) -> Result<()> {
+        match statement.kind {
+            StatementKind::Declaration { name, types } => {
+                todo!()
+            }
+            StatementKind::Definition {
                 name,
                 parameter,
                 body,
@@ -32,7 +38,7 @@ impl Interpreter {
                 let name: String = name.get_identifier_name().ok_or_else(|| {
                     Error::with_help(
                         ErrorKind::InvalidToken,
-                        expression.location.clone(),
+                        statement.location.clone(),
                         "Function name must be an identifier",
                     )
                 })?;
@@ -40,8 +46,17 @@ impl Interpreter {
                 self.environment
                     .borrow_mut()
                     .set(name, Value::Function { parameter, body });
-                Ok(Value::None)
+                Ok(())
             }
+            StatementKind::Expression { expression } => {
+                println!("{}", self.evaluate(expression)?);
+                Ok(())
+            }
+        }
+    }
+
+    fn evaluate(&mut self, expression: Expression) -> Result<Value> {
+        match expression.kind {
             ExpressionKind::Unary {
                 operator,
                 expression,
@@ -323,7 +338,7 @@ impl Interpreter {
                         self.environment
                             .borrow_mut()
                             .set(parameter_name, evaluated_argument);
-                        Ok(self.evaluate(*body)?)
+                        Ok(self.evaluate(body)?)
                     }
                     _ => err!(
                         ErrorKind::ExpectedExpression,
@@ -331,9 +346,6 @@ impl Interpreter {
                         format!("Tried to invoke a non-function type {:?}", function_value),
                     ),
                 }
-            }
-            ExpressionKind::Declaration { name, types } => {
-                todo!()
             }
             ExpressionKind::Identifier { token } => match &token.value {
                 TokenValue::Identifier(name) => {
@@ -362,7 +374,10 @@ impl Interpreter {
                     self.evaluate(*otherwise)
                 }
             }
-            ExpressionKind::Lambda { parameter, body } => Ok(Value::Function { parameter, body }),
+            ExpressionKind::Lambda { parameter, body } => Ok(Value::Function {
+                parameter,
+                body: *body,
+            }),
             ExpressionKind::Literal { token } => (&token).try_into(),
         }
     }

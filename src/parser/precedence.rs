@@ -3,7 +3,7 @@ use crate::model::TokenKind;
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Precedence {
     None,
-    Assignment,
+    Definition,
     Conditional,
     Comparison,
     Term,
@@ -18,7 +18,7 @@ pub enum Precedence {
 impl From<TokenKind> for Precedence {
     fn from(kind: TokenKind) -> Self {
         match kind {
-            TokenKind::Equal => Self::Assignment,
+            TokenKind::Equal => Self::Definition,
             TokenKind::If => Self::Conditional,
             TokenKind::BangEqual
             | TokenKind::EqualEqual

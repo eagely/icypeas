@@ -11,10 +11,7 @@ pub enum Value {
     Integer(i128),
     None,
     String(String),
-    Function {
-        parameter: Token,
-        body: Box<Expression>,
-    },
+    Function { parameter: Token, body: Expression },
 }
 
 impl TryFrom<&Token> for Value {
