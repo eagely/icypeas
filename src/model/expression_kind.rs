@@ -2,11 +2,6 @@ use super::{Expression, Token};
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum ExpressionKind {
-    Assignment {
-        name: Token,
-        parameter: Token,
-        body: Box<Expression>,
-    },
     Unary {
         operator: Token,
         expression: Box<Expression>,
@@ -19,10 +14,6 @@ pub enum ExpressionKind {
     Call {
         function: Box<Expression>,
         argument: Box<Expression>,
-    },
-    Declaration {
-        name: Token,
-        types: Vec<Token>,
     },
     Identifier {
         token: Token,

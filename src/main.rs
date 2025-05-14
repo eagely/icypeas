@@ -82,9 +82,8 @@ fn run(source: &str) -> Result<()> {
     let ast = parser.parse(tokens)?;
 
     let environment = Rc::new(RefCell::new(Environment::new()));
-    for expr in ast {
-        let mut interpreter = Interpreter::new(environment.clone());
-        interpreter.interpret(expr)?;
-    }
+    let mut interpreter = Interpreter::new(environment);
+    interpreter.interpret(ast)?;
+
     Ok(())
 }

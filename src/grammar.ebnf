@@ -1,7 +1,7 @@
 expression = declaration ;
 declaration = IDENTIFIER ":" { "_" | IDENTIFIER } | lambda ;
-lambda = { IDENTIFIER } "$" expression | assignment ;
-assignment = IDENTIFIER { primary } "=" expression | if ;
+lambda = { IDENTIFIER } "$" expression | definition ;
+definition = IDENTIFIER { primary } "=" expression | if ;
 if = "if" expression "then" expression { "elif" expression expression } "else" expression | binary ;
 binary = unary { ( IDENTIFIER | OPERATOR ) unary } ;
 unary = ( "!" | "-" ) unary | call;

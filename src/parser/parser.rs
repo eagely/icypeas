@@ -1,9 +1,9 @@
 use crate::err;
 use crate::error::{ErrorKind, Result};
-use crate::model::ExpressionKind;
 use crate::model::Token;
 use crate::model::TokenKind;
 use crate::model::{Expression, Location};
+use crate::model::{ExpressionKind, Statement, StatementKind};
 use crate::parser::precedence::Precedence;
 use std::rc::Rc;
 
@@ -33,21 +33,24 @@ impl Parser {
         }
     }
 
-    pub fn parse(&mut self, tokens: Vec<Token>) -> Result<Vec<Expression>> {
+    pub fn parse(&mut self, tokens: Vec<Token>) -> Result<Vec<Statement>> {
         self.tokens = tokens;
-        let mut expressions = vec![];
+        let mut statements = vec![];
 
         while !self.is_eof() {
-            if try_consume_any!(*self, TokenKind::Semicolon, TokenKind::Newline) {
+            if try_consume_any!(*self, TokenKind::Newline) {
                 continue;
             }
+            
             if self.is_eof() {
                 break;
             }
 
-            expressions.push(self.parse_expression()?);
+            let statement = self.parse_statement()?;
+
+            statements.push(statement);
         }
-        Ok(expressions)
+        Ok(statements)
     }
 
     fn current(&self) -> Option<Token> {
@@ -80,15 +83,13 @@ impl Parser {
             || self.current_is(TokenKind::Semicolon)
     }
 
-    fn parse_expression(&mut self) -> Result<Expression> {
-        let expr = self.parse_declaration()?;
-
-        Ok(expr)
+    fn parse_statement(&mut self) -> Result<Statement> {
+        self.parse_declaration()
     }
 
-    fn parse_declaration(&mut self) -> Result<Expression> {
+    fn parse_declaration(&mut self) -> Result<Statement> {
         if !self.next_is(1, TokenKind::Colon) {
-            return self.parse_lambda();
+            return self.parse_definition();
         }
 
         let name = self.current().ok_or(ErrorKind::UnexpectedEndOfFile)?;
@@ -106,8 +107,8 @@ impl Parser {
                     self.advance();
                     types.push(token);
                 }
-                Ok(Expression::new(
-                    ExpressionKind::Declaration { name, types },
+                Ok(Statement::new(
+                    StatementKind::Declaration { name, types },
                     location,
                 ))
             }
@@ -119,6 +120,91 @@ impl Parser {
         }
     }
 
+    fn parse_definition(&mut self) -> Result<Statement> {
+        if !self.current_is(TokenKind::Identifier)
+            || self.tokens[self.index..]
+                .iter()
+                .find(|t| !t.kind.is_primary())
+                .is_none_or(|t| t.kind != TokenKind::Equal)
+        {
+            let expression = self.parse_expression()?;
+            let location = expression.location.clone();
+            return Ok(Statement::new(
+                StatementKind::Expression { expression },
+                location,
+            ));
+        }
+
+        let name = self.current().ok_or(ErrorKind::UnexpectedEndOfFile)?;
+
+        if !self.next_is(1, TokenKind::Identifier) {
+            return err!(
+                ErrorKind::ExpectedExpression,
+                name.location,
+                "Missing parameter for function definition.",
+            );
+        }
+
+        self.advance();
+
+        let mut parameters = vec![];
+
+        while let Some(t) = self.current() {
+            if !t.kind.is_primary() {
+                break;
+            }
+            parameters.push(t);
+            self.advance();
+        }
+
+        self.advance();
+
+        let body = self.parse_expression()?;
+        let location = body.location.clone();
+        Self::curry_definition(name, parameters, body, location)
+    }
+
+    fn curry_definition(
+        name: Token,
+        parameters: Vec<Token>,
+        body: Expression,
+        location: Rc<Location>,
+    ) -> Result<Statement> {
+        let mut curried_lambda = body;
+
+        let mut parameters = parameters.into_iter();
+        let Some(first) = parameters.next() else {
+            return err!(
+                ErrorKind::MissingParameter,
+                location,
+                "Expected at least one parameter in a function definition."
+            );
+        };
+
+        for parameter in parameters.rev() {
+            curried_lambda = Expression::new(
+                ExpressionKind::Lambda {
+                    parameter: parameter.clone(),
+                    body: Box::new(curried_lambda),
+                },
+                location.clone(),
+            );
+        }
+
+        Ok(Statement::new(
+            StatementKind::Definition {
+                name,
+                parameter: first,
+                body: curried_lambda,
+            },
+            location,
+        ))
+    }
+
+    fn parse_expression(&mut self) -> Result<Expression> {
+        self.parse_lambda()
+    }
+
     fn parse_lambda(&mut self) -> Result<Expression> {
         if !self.current_is(TokenKind::Identifier)
             || self.tokens[self.index..]
@@ -126,7 +212,7 @@ impl Parser {
                 .find(|t| t.kind != TokenKind::Identifier)
                 .is_none_or(|t| t.kind != TokenKind::Dollar)
         {
-            return self.parse_assignment();
+            return self.parse_if();
         }
 
         let parameter = self.current().ok_or(ErrorKind::UnexpectedEndOfFile)?;
@@ -147,82 +233,6 @@ impl Parser {
         } else {
             self.parse_if()
         }
-    }
-
-    fn parse_assignment(&mut self) -> Result<Expression> {
-        if !self.current_is(TokenKind::Identifier)
-            || self.tokens[self.index..]
-                .iter()
-                .find(|t| !t.kind.is_primary())
-                .is_none_or(|t| t.kind != TokenKind::Equal)
-        {
-            return self.parse_if();
-        }
-
-        let name = self.current().ok_or(ErrorKind::UnexpectedEndOfFile)?;
-
-        if !self.next_is(1, TokenKind::Identifier) {
-            return err!(
-                ErrorKind::ExpectedExpression,
-                name.location,
-                "Missing parameter for function assignment.",
-            );
-        }
-
-        self.advance();
-
-        let mut parameters = vec![];
-
-        while let Some(t) = self.current() {
-            if !t.kind.is_primary() {
-                break;
-            }
-            parameters.push(t);
-            self.advance();
-        }
-
-        self.advance();
-
-        let body = self.parse_expression()?;
-        let location = body.location.clone();
-        Self::curry_assignment(name, parameters, body, location)
-    }
-
-    fn curry_assignment(
-        name: Token,
-        parameters: Vec<Token>,
-        body: Expression,
-        location: Rc<Location>,
-    ) -> Result<Expression> {
-        let mut curried_lambda = body;
-
-        let mut parameters = parameters.into_iter();
-        let Some(first) = parameters.next() else {
-            return err!(
-                ErrorKind::MissingParameter,
-                location,
-                "Expected at least one parameter in a function assignment."
-            );
-        };
-
-        for parameter in parameters.rev() {
-            curried_lambda = Expression::new(
-                ExpressionKind::Lambda {
-                    parameter: parameter.clone(),
-                    body: Box::new(curried_lambda),
-                },
-                location.clone(),
-            );
-        }
-
-        Ok(Expression::new(
-            ExpressionKind::Assignment {
-                name,
-                parameter: first,
-                body: Box::new(curried_lambda),
-            },
-            location,
-        ))
     }
 
     fn parse_if(&mut self) -> Result<Expression> {
@@ -351,21 +361,21 @@ impl Parser {
     }
 
     fn parse_call(&mut self) -> Result<Expression> {
-        let mut expr = self.parse_primary()?;
+        let mut expression = self.parse_primary()?;
         while !self.is_end_of_expression()
             && self.current().is_some_and(|token| token.kind.is_primary())
         {
             let arg = self.parse_primary()?;
             let location = arg.location.clone();
-            expr = Expression::new(
+            expression = Expression::new(
                 ExpressionKind::Call {
-                    function: Box::new(expr),
+                    function: Box::new(expression),
                     argument: Box::new(arg),
                 },
                 location,
             );
         }
-        Ok(expr)
+        Ok(expression)
     }
 
     fn parse_primary(&mut self) -> Result<Expression> {
