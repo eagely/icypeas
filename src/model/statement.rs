@@ -1,14 +1,26 @@
-use super::{Location, statement_kind::StatementKind};
-use std::rc::Rc;
+use super::{Expression, Located, Token, located::LocatedExt};
 
 #[derive(Debug)]
-pub struct Statement {
-    pub kind: StatementKind,
-    pub location: Rc<Location>,
+pub enum Statement {
+    Declaration {
+        name: Located<Token>,
+        types: Vec<Located<Token>>,
+    },
+    Definition {
+        name: Located<Token>,
+        parameter: Located<Token>,
+        body: Located<Expression>,
+    },
+    Expression {
+        expression: Located<Expression>,
+    },
 }
 
-impl Statement {
-    pub const fn new(kind: StatementKind, location: Rc<Location>) -> Self {
-        Self { kind, location }
+impl LocatedExt<Self> for Statement {
+    fn at(self, location: std::rc::Rc<super::Location>) -> super::Located<Self> {
+        Located {
+            node: self,
+            location,
+        }
     }
 }

@@ -1,3 +1,4 @@
+use super::Located;
 use crate::err;
 use crate::error::{ErrorKind, Result};
 use crate::model::Expression;
@@ -11,13 +12,16 @@ pub enum Value {
     Integer(i128),
     None,
     String(String),
-    Function { parameter: Token, body: Expression },
+    Function {
+        parameter: Located<Token>,
+        body: Located<Expression>,
+    },
 }
 
-impl TryFrom<&Token> for Value {
+impl TryFrom<&Located<Token>> for Value {
     type Error = crate::error::Error;
-    fn try_from(value: &Token) -> Result<Self> {
-        match &value.value {
+    fn try_from(value: &Located<Token>) -> Result<Self> {
+        match &value.node.value {
             TokenValue::Boolean(boolean) => Ok(Self::Boolean(*boolean)),
             TokenValue::Float(float) => Ok(Self::Float(*float)),
             TokenValue::Integer(integer) => Ok(Self::Integer(*integer)),
