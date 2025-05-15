@@ -12,7 +12,8 @@ pub enum Precedence {
     BitwiseOr,
     BitwiseXor,
     BitwiseAnd,
-    Primary,
+    Prefix,
+    Application,
 }
 
 impl From<TokenKind> for Precedence {
@@ -32,7 +33,6 @@ impl From<TokenKind> for Precedence {
             TokenKind::Pipe => Self::BitwiseOr,
             TokenKind::Caret => Self::BitwiseXor,
             TokenKind::Ampersand => Self::BitwiseAnd,
-            TokenKind::At | TokenKind::Colon | TokenKind::Hash => Self::Primary,
             _ => Self::None,
         }
     }
