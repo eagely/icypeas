@@ -1,7 +1,6 @@
 use crate::err;
 use crate::error::{Error, ErrorKind, Result};
-use crate::model::Location;
-use crate::model::{Token, TokenKind, TokenValue};
+use crate::model::{Located, LocatedExt, Location, Token, TokenKind, TokenValue};
 use std::rc::Rc;
 
 pub struct Lexer {
@@ -21,7 +20,7 @@ impl Lexer {
         }
     }
 
-    pub fn lex(&mut self, source: &str) -> Result<Vec<Token>> {
+    pub fn lex(&mut self, source: &str) -> Result<Vec<Located<Token>>> {
         self.source = source.chars().collect();
         let mut tokens = vec![];
         while let Some(c) = self.current() {
@@ -30,11 +29,7 @@ impl Lexer {
                 continue;
             }
             let (kind, value) = self.consume_token(c)?;
-            tokens.push(Token {
-                kind,
-                value,
-                location: self.location(),
-            });
+            tokens.push(Token { kind, value }.at(self.location()));
             self.advance();
         }
         Ok(tokens)

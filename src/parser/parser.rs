@@ -1,9 +1,6 @@
 use crate::err;
 use crate::error::{ErrorKind, Result};
-use crate::model::Token;
-use crate::model::TokenKind;
-use crate::model::{Expression, Location};
-use crate::model::{ExpressionKind, Statement, StatementKind};
+use crate::model::{Expression, Located, LocatedExt, Location, Statement, Token, TokenKind};
 use crate::parser::precedence::Precedence;
 use std::rc::Rc;
 
@@ -21,7 +18,7 @@ macro_rules! try_consume_any {
 }
 
 pub struct Parser {
-    tokens: Vec<Token>,
+    tokens: Vec<Located<Token>>,
     index: usize,
 }
 
@@ -33,7 +30,7 @@ impl Parser {
         }
     }
 
-    pub fn parse(&mut self, tokens: Vec<Token>) -> Result<Vec<Statement>> {
+    pub fn parse(&mut self, tokens: Vec<Located<Token>>) -> Result<Vec<Located<Statement>>> {
         self.tokens = tokens;
         let mut statements = vec![];
 
@@ -53,11 +50,11 @@ impl Parser {
         Ok(statements)
     }
 
-    fn current(&self) -> Option<Token> {
+    fn current(&self) -> Option<Located<Token>> {
         self.tokens.get(self.index).cloned()
     }
 
-    fn next(&self, n: usize) -> Option<Token> {
+    fn next(&self, n: usize) -> Option<Located<Token>> {
         self.tokens.get(self.index + n).cloned()
     }
 
@@ -66,11 +63,11 @@ impl Parser {
     }
 
     fn current_is(&self, kind: TokenKind) -> bool {
-        self.current().is_some_and(|t| t.kind == kind)
+        self.current().is_some_and(|t| t.node.kind == kind)
     }
 
     fn next_is(&self, n: usize, kind: TokenKind) -> bool {
-        self.next(n).is_some_and(|t| t.kind == kind)
+        self.next(n).is_some_and(|t| t.node.kind == kind)
     }
 
     fn is_eof(&self) -> bool {
@@ -83,11 +80,11 @@ impl Parser {
             || self.current_is(TokenKind::Semicolon)
     }
 
-    fn parse_statement(&mut self) -> Result<Statement> {
+    fn parse_statement(&mut self) -> Result<Located<Statement>> {
         self.parse_declaration()
     }
 
-    fn parse_declaration(&mut self) -> Result<Statement> {
+    fn parse_declaration(&mut self) -> Result<Located<Statement>> {
         if !self.next_is(1, TokenKind::Colon) {
             return self.parse_definition();
         }
@@ -95,7 +92,7 @@ impl Parser {
         let name = self.current().ok_or(ErrorKind::UnexpectedEndOfFile)?;
         let location = name.location.clone();
 
-        match name.kind {
+        match name.node.kind {
             TokenKind::Identifier => {
                 self.advance();
                 self.advance();
@@ -107,10 +104,7 @@ impl Parser {
                     self.advance();
                     types.push(token);
                 }
-                Ok(Statement::new(
-                    StatementKind::Declaration { name, types },
-                    location,
-                ))
+                Ok(Statement::Declaration { name, types }.at(location))
             }
             _ => err!(
                 ErrorKind::ExpectedExpression,
@@ -120,19 +114,16 @@ impl Parser {
         }
     }
 
-    fn parse_definition(&mut self) -> Result<Statement> {
+    fn parse_definition(&mut self) -> Result<Located<Statement>> {
         if !self.current_is(TokenKind::Identifier)
             || self.tokens[self.index..]
                 .iter()
-                .find(|t| !t.kind.is_primary())
-                .is_none_or(|t| t.kind != TokenKind::Equal)
+                .find(|t| !t.node.kind.is_primary())
+                .is_none_or(|t| t.node.kind != TokenKind::Equal)
         {
             let expression = self.parse_expression(Precedence::None)?;
             let location = expression.location.clone();
-            return Ok(Statement::new(
-                StatementKind::Expression { expression },
-                location,
-            ));
+            return Ok(Statement::Expression { expression }.at(location));
         }
 
         let name = self.current().ok_or(ErrorKind::UnexpectedEndOfFile)?;
@@ -150,7 +141,7 @@ impl Parser {
         let mut parameters = vec![];
 
         while let Some(t) = self.current() {
-            if !t.kind.is_primary() {
+            if !t.node.kind.is_primary() {
                 break;
             }
             parameters.push(t);
@@ -165,11 +156,11 @@ impl Parser {
     }
 
     fn curry_definition(
-        name: Token,
-        parameters: Vec<Token>,
-        body: Expression,
+        name: Located<Token>,
+        parameters: Vec<Located<Token>>,
+        body: Located<Expression>,
         location: Rc<Location>,
-    ) -> Result<Statement> {
+    ) -> Result<Located<Statement>> {
         let mut curried_lambda = body;
 
         let mut parameters = parameters.into_iter();
@@ -182,26 +173,22 @@ impl Parser {
         };
 
         for parameter in parameters.rev() {
-            curried_lambda = Expression::new(
-                ExpressionKind::Lambda {
-                    parameter: parameter.clone(),
-                    body: Box::new(curried_lambda),
-                },
-                location.clone(),
-            );
+            curried_lambda = Expression::Lambda {
+                parameter,
+                body: Box::new(curried_lambda),
+            }
+            .at(location.clone());
         }
 
-        Ok(Statement::new(
-            StatementKind::Definition {
-                name,
-                parameter: first,
-                body: curried_lambda,
-            },
-            location,
-        ))
+        Ok(Statement::Definition {
+            name,
+            parameter: first,
+            body: curried_lambda,
+        }
+        .at(location))
     }
 
-    fn parse_lambda(&mut self) -> Result<Expression> {
+    fn parse_lambda(&mut self) -> Result<Located<Expression>> {
         let mut parameters = vec![];
         let mut location = self
             .current()
@@ -229,19 +216,17 @@ impl Parser {
 
         let mut curried_lambda = body;
         for parameter in parameters.into_iter().rev() {
-            curried_lambda = Expression::new(
-                ExpressionKind::Lambda {
-                    parameter,
-                    body: Box::new(curried_lambda),
-                },
-                location.clone(),
-            );
+            curried_lambda = Expression::Lambda {
+                parameter,
+                body: Box::new(curried_lambda),
+            }
+            .at(location.clone());
         }
 
         Ok(curried_lambda)
     }
 
-    fn parse_expression(&mut self, precedence: Precedence) -> Result<Expression> {
+    fn parse_expression(&mut self, precedence: Precedence) -> Result<Located<Expression>> {
         let mut left = self.parse_prefix()?;
 
         while !self.is_eof() {
@@ -249,7 +234,7 @@ impl Parser {
                 break;
             };
 
-            let current_precedence = Precedence::from(current_token.kind);
+            let current_precedence = Precedence::from(current_token.node.kind);
 
             if current_precedence <= precedence {
                 break;
@@ -261,36 +246,32 @@ impl Parser {
         Ok(left)
     }
 
-    fn parse_prefix(&mut self) -> Result<Expression> {
+    fn parse_prefix(&mut self) -> Result<Located<Expression>> {
         let token = self.current().ok_or(ErrorKind::UnexpectedEndOfFile)?;
         let location = token.location.clone();
 
-        match token.kind {
+        match token.node.kind {
             TokenKind::Bang | TokenKind::Minus => {
                 self.advance();
                 let right = self.parse_expression(Precedence::Prefix)?;
-                Ok(Expression::new(
-                    ExpressionKind::Unary {
-                        operator: token,
-                        expression: Box::new(right),
-                    },
-                    location,
-                ))
+                Ok(Expression::Unary {
+                    operator: token,
+                    expression: Box::new(right),
+                }
+                .at(location))
             }
 
             TokenKind::Identifier => {
                 if self.current_is(TokenKind::Identifier)
                     && self.tokens[self.index..]
                         .iter()
-                        .find(|t| t.kind != TokenKind::Identifier)
-                        .is_some_and(|t| t.kind == TokenKind::Dollar)
+                        .find(|t| t.node.kind != TokenKind::Identifier)
+                        .is_some_and(|t| t.node.kind == TokenKind::Dollar)
                 {
                     self.parse_lambda()
                 } else {
                     self.advance();
-                    let expression =
-                        Expression::new(ExpressionKind::Identifier { token }, location);
-                    self.parse_call(expression)
+                    self.parse_call(Expression::Identifier { token }.at(location))
                 }
             }
 
@@ -315,7 +296,7 @@ impl Parser {
             | TokenKind::String
             | TokenKind::Underscore => {
                 self.advance();
-                Ok(Expression::new(ExpressionKind::Literal { token }, location))
+                Ok(Expression::Literal { token }.at(location))
             }
             TokenKind::If => {
                 self.advance();
@@ -329,27 +310,29 @@ impl Parser {
         }
     }
 
-    fn parse_infix(&mut self, left: Expression, precedence: Precedence) -> Result<Expression> {
+    fn parse_infix(
+        &mut self,
+        left: Located<Expression>,
+        precedence: Precedence,
+    ) -> Result<Located<Expression>> {
         let operator = self.current().ok_or(ErrorKind::UnexpectedEndOfFile)?;
         self.advance();
 
         let right = self.parse_expression(precedence)?;
         let location = operator.location.clone();
 
-        Ok(Expression::new(
-            ExpressionKind::Binary {
-                left: Box::new(left),
-                operator,
-                right: Box::new(right),
-            },
-            location,
-        ))
+        Ok(Expression::Binary {
+            left: Box::new(left),
+            operator,
+            right: Box::new(right),
+        }
+        .at(location))
     }
 
-    fn parse_call(&mut self, mut expression: Expression) -> Result<Expression> {
+    fn parse_call(&mut self, mut expression: Located<Expression>) -> Result<Located<Expression>> {
         while !self.is_end_of_expression() {
             if let Some(current_token) = self.current() {
-                match current_token.kind {
+                match current_token.node.kind {
                     TokenKind::Identifier
                     | TokenKind::LeftParenthesis
                     | TokenKind::True
@@ -363,13 +346,11 @@ impl Parser {
                         let argument = self.parse_expression(Precedence::Application)?;
                         let location = argument.location.clone();
 
-                        expression = Expression::new(
-                            ExpressionKind::Call {
-                                function: Box::new(expression),
-                                argument: Box::new(argument),
-                            },
-                            location,
-                        );
+                        expression = Expression::Call {
+                            function: Box::new(expression),
+                            argument: Box::new(argument),
+                        }
+                        .at(location);
                     }
 
                     _ => break,
@@ -382,7 +363,7 @@ impl Parser {
         Ok(expression)
     }
 
-    fn parse_if(&mut self) -> Result<Expression> {
+    fn parse_if(&mut self) -> Result<Located<Expression>> {
         let token = self.current().ok_or(ErrorKind::UnexpectedEndOfFile)?;
         let location = token.location;
         let condition = self.parse_expression(Precedence::None)?;
@@ -424,12 +405,10 @@ impl Parser {
         }
         self.advance();
 
-        Ok(Expression::new(
-            ExpressionKind::If {
-                branches,
-                otherwise: Box::new(self.parse_expression(Precedence::None)?),
-            },
-            location,
-        ))
+        Ok(Expression::If {
+            branches,
+            otherwise: Box::new(self.parse_expression(Precedence::None)?),
+        }
+        .at(location))
     }
 }

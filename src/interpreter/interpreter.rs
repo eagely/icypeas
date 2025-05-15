@@ -1,10 +1,7 @@
 use super::environment::Environment;
 use crate::err;
 use crate::error::{Error, ErrorKind, Result};
-use crate::model::TokenValue;
-use crate::model::Value;
-use crate::model::{Expression, ExpressionKind};
-use crate::model::{Statement, StatementKind, TokenKind};
+use crate::model::{Expression, Located, Statement, TokenKind, TokenValue, Value};
 use std::cell::RefCell;
 use std::convert::TryInto;
 use std::rc::Rc;
@@ -18,24 +15,24 @@ impl Interpreter {
         Self { environment }
     }
 
-    pub fn interpret(&mut self, statements: Vec<Statement>) -> Result<()> {
+    pub fn interpret(&mut self, statements: Vec<Located<Statement>>) -> Result<()> {
         for statement in statements {
             self.execute(statement)?;
         }
         Ok(())
     }
 
-    fn execute(&mut self, statement: Statement) -> Result<()> {
-        match statement.kind {
-            StatementKind::Declaration { name, types } => {
+    fn execute(&mut self, statement: Located<Statement>) -> Result<()> {
+        match statement.node {
+            Statement::Declaration { name, types } => {
                 todo!()
             }
-            StatementKind::Definition {
+            Statement::Definition {
                 name,
                 parameter,
                 body,
             } => {
-                let name: String = name.get_identifier_name().ok_or_else(|| {
+                let name: String = name.node.get_identifier_name().ok_or_else(|| {
                     Error::with_help(
                         ErrorKind::InvalidToken,
                         statement.location.clone(),
@@ -48,19 +45,19 @@ impl Interpreter {
                     .set(name, Value::Function { parameter, body });
                 Ok(())
             }
-            StatementKind::Expression { expression } => {
+            Statement::Expression { expression } => {
                 println!("{}", self.evaluate(expression)?);
                 Ok(())
             }
         }
     }
 
-    fn evaluate(&mut self, expression: Expression) -> Result<Value> {
-        match expression.kind {
-            ExpressionKind::Unary {
+    fn evaluate(&mut self, expression: Located<Expression>) -> Result<Value> {
+        match expression.node {
+            Expression::Unary {
                 operator,
                 expression,
-            } => match operator.kind {
+            } => match operator.node.kind {
                 TokenKind::Bang => {
                     let value = self.evaluate(*expression)?;
                     match value {
@@ -86,14 +83,14 @@ impl Interpreter {
                 _ => err!(
                     ErrorKind::UnsupportedExpression,
                     operator.location.clone(),
-                    format!("Unsupported operator: {:?}", operator.kind),
+                    format!("Unsupported operator: {:?}", operator.node.kind),
                 ),
             },
-            ExpressionKind::Binary {
+            Expression::Binary {
                 left,
                 operator,
                 right,
-            } => match operator.kind {
+            } => match operator.node.kind {
                 TokenKind::Plus => {
                     let left_value = self.evaluate(*left)?;
                     let right_value = self.evaluate(*right)?;
@@ -322,18 +319,19 @@ impl Interpreter {
                 _ => err!(
                     ErrorKind::UnsupportedExpression,
                     operator.location.clone(),
-                    format!("Unsupported operator: {:?}", operator.kind),
+                    format!("Unsupported operator: {:?}", operator.node.kind),
                 ),
             },
-            ExpressionKind::Call { function, argument } => {
+            Expression::Call { function, argument } => {
                 let location = function.location.clone();
                 let function_value = self.evaluate(*function)?;
 
                 match function_value {
                     Value::Function { parameter, body } => {
-                        let parameter_name = parameter.get_identifier_name().ok_or_else(|| {
-                            Error::new(ErrorKind::InvalidToken, parameter.location)
-                        })?;
+                        let parameter_name =
+                            parameter.node.get_identifier_name().ok_or_else(|| {
+                                Error::new(ErrorKind::InvalidToken, parameter.location)
+                            })?;
                         let evaluated_argument = self.evaluate(*argument)?;
                         self.environment
                             .borrow_mut()
@@ -347,7 +345,7 @@ impl Interpreter {
                     ),
                 }
             }
-            ExpressionKind::Identifier { token } => match &token.value {
+            Expression::Identifier { token } => match &token.node.value {
                 TokenValue::Identifier(name) => {
                     self.environment.borrow().get(name).ok_or_else(|| {
                         Error::new(ErrorKind::InvalidIdentifier, token.location.clone())
@@ -355,7 +353,7 @@ impl Interpreter {
                 }
                 _ => err!(ErrorKind::UnsupportedExpression, token.location.clone()),
             },
-            ExpressionKind::If {
+            Expression::If {
                 branches,
                 otherwise,
             } => {
@@ -374,11 +372,11 @@ impl Interpreter {
                     self.evaluate(*otherwise)
                 }
             }
-            ExpressionKind::Lambda { parameter, body } => Ok(Value::Function {
+            Expression::Lambda { parameter, body } => Ok(Value::Function {
                 parameter,
                 body: *body,
             }),
-            ExpressionKind::Literal { token } => (&token).try_into(),
+            Expression::Literal { token } => (&token).try_into(),
         }
     }
 }

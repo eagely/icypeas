@@ -1,3 +1,5 @@
+use super::Located;
+use super::LocatedExt;
 use super::Location;
 use super::TokenKind;
 use super::TokenValue;
@@ -6,30 +8,46 @@ use crate::error::{Error, ErrorKind, Result};
 use std::fmt::{Debug, Display, Formatter};
 use std::rc::Rc;
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone)]
 pub struct Token {
     pub kind: TokenKind,
     pub value: TokenValue,
-    pub location: Rc<Location>,
 }
 
-impl Debug for Token {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}, {:?}, {:?}", self.kind, self.value, self.location)
+impl LocatedExt<Self> for Token {
+    fn at(self, location: Rc<Location>) -> super::Located<Self> {
+        Located {
+            node: self,
+            location,
+        }
     }
 }
 
-impl Display for Token {
+impl Debug for Located<Token> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}, {:?}, {:?}", self.kind, self.value, self.location)
+        write!(
+            f,
+            "{:?}, {:?}, {:?}",
+            self.node.kind, self.node.value, self.location
+        )
     }
 }
 
-impl TryFrom<&Token> for String {
+impl Display for Located<Token> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{:?}, {:?}, {:?}",
+            self.node.kind, self.node.value, self.location
+        )
+    }
+}
+
+impl TryFrom<&Located<Token>> for String {
     type Error = Error;
 
-    fn try_from(value: &Token) -> Result<Self> {
-        if let TokenValue::String(string) = &value.value {
+    fn try_from(value: &Located<Token>) -> Result<Self> {
+        if let TokenValue::String(string) = &value.node.value {
             Ok(string.clone())
         } else {
             err!(
