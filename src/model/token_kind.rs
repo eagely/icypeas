@@ -85,4 +85,21 @@ impl TokenKind {
                 | Self::Hash
         )
     }
+
+    pub const fn can_start_expression(self) -> bool {
+        matches!(
+            self,
+            Self::Identifier
+                | Self::Bang
+                | Self::Minus
+                | Self::LeftParenthesis
+                | Self::True
+                | Self::False
+                | Self::Null
+                | Self::Float
+                | Self::Integer
+                | Self::String
+                | Self::If
+        )
+    }
 }

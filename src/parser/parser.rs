@@ -45,6 +45,18 @@ impl Parser {
 
             let statement = self.parse_statement()?;
 
+            if !self.is_eof() && !try_consume_any!(self, TokenKind::Newline, TokenKind::Semicolon) {
+                let location = self
+                    .current()
+                    .ok_or(ErrorKind::UnexpectedEndOfFile)?
+                    .location;
+                return err!(
+                    ErrorKind::UnexpectedToken,
+                    location,
+                    "Expected a newline or semicolon."
+                );
+            }
+
             statements.push(statement);
         }
         Ok(statements)
@@ -229,18 +241,37 @@ impl Parser {
     fn parse_expression(&mut self, precedence: Precedence) -> Result<Located<Expression>> {
         let mut left = self.parse_prefix()?;
 
-        while !self.is_eof() {
-            let Some(current_token) = self.current() else {
-                break;
-            };
-
-            let current_precedence = Precedence::from(current_token.node.kind);
-
-            if current_precedence <= precedence {
-                break;
+        while !self.is_eof() && !self.is_end_of_expression() {
+            if self.current_is(TokenKind::If) && Precedence::Conditional > precedence {
+                self.advance();
+                left = self.parse_if()?;
+                continue;
             }
 
-            left = self.parse_infix(left, current_precedence)?;
+            if let Some(token) = self.current() {
+                let current_precedence = Precedence::from(token.node.kind);
+                if current_precedence > precedence {
+                    left = self.parse_infix(left, current_precedence)?;
+                    continue;
+                }
+            }
+
+            if self
+                .current()
+                .is_some_and(|t| t.node.kind.can_start_expression())
+                && !self.current().is_some_and(|t| t.node.kind.is_operator())
+                && Precedence::Application > precedence
+            {
+                let location = left.location.clone();
+                left = Expression::Call {
+                    function: Box::new(left),
+                    argument: Box::new(self.parse_prefix()?),
+                }
+                .at(location);
+                continue;
+            }
+
+            break;
         }
 
         Ok(left)
@@ -271,7 +302,7 @@ impl Parser {
                     self.parse_lambda()
                 } else {
                     self.advance();
-                    self.parse_call(Expression::Identifier { token }.at(location))
+                    Ok(Expression::Identifier { token }.at(location))
                 }
             }
 
@@ -327,40 +358,6 @@ impl Parser {
             right: Box::new(right),
         }
         .at(location))
-    }
-
-    fn parse_call(&mut self, mut expression: Located<Expression>) -> Result<Located<Expression>> {
-        while !self.is_end_of_expression() {
-            if let Some(current_token) = self.current() {
-                match current_token.node.kind {
-                    TokenKind::Identifier
-                    | TokenKind::LeftParenthesis
-                    | TokenKind::True
-                    | TokenKind::False
-                    | TokenKind::Null
-                    | TokenKind::Float
-                    | TokenKind::Integer
-                    | TokenKind::String
-                    | TokenKind::Underscore
-                    | TokenKind::If => {
-                        let argument = self.parse_expression(Precedence::Application)?;
-                        let location = argument.location.clone();
-
-                        expression = Expression::Call {
-                            function: Box::new(expression),
-                            argument: Box::new(argument),
-                        }
-                        .at(location);
-                    }
-
-                    _ => break,
-                }
-            } else {
-                break;
-            }
-        }
-
-        Ok(expression)
     }
 
     fn parse_if(&mut self) -> Result<Located<Expression>> {
