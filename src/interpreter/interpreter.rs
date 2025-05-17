@@ -40,9 +40,15 @@ impl Interpreter {
                     )
                 })?;
 
-                self.environment
-                    .borrow_mut()
-                    .set(name, Value::Function { parameter, body });
+                let environment = Environment::with_parent(self.environment.clone());
+                self.environment.borrow_mut().set(
+                    name,
+                    Value::Function {
+                        parameter,
+                        body,
+                        environment,
+                    },
+                );
                 Ok(())
             }
             Statement::Expression { expression } => {
@@ -327,16 +333,28 @@ impl Interpreter {
                 let function_value = self.evaluate(*function)?;
 
                 match function_value {
-                    Value::Function { parameter, body } => {
+                    Value::Function {
+                        parameter,
+                        body,
+                        environment,
+                    } => {
+                        let old_environment = self.environment.clone();
+                        let function_environment = Environment::with_parent(environment);
+
                         let parameter_name =
                             parameter.node.get_identifier_name().ok_or_else(|| {
                                 Error::new(ErrorKind::InvalidToken, parameter.location)
                             })?;
                         let evaluated_argument = self.evaluate(*argument)?;
-                        self.environment
+                        function_environment
                             .borrow_mut()
                             .set(parameter_name, evaluated_argument);
-                        Ok(self.evaluate(body)?)
+
+                        self.environment = function_environment;
+                        let res = self.evaluate(body)?;
+                        self.environment = old_environment;
+
+                        Ok(res)
                     }
                     _ => err!(
                         ErrorKind::ExpectedExpression,
@@ -375,6 +393,7 @@ impl Interpreter {
             Expression::Lambda { parameter, body } => Ok(Value::Function {
                 parameter,
                 body: *body,
+                environment: Environment::with_parent(self.environment.clone()),
             }),
             Expression::Literal { token } => (&token).try_into(),
         }
