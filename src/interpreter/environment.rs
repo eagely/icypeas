@@ -8,11 +8,18 @@ pub struct Environment {
 }
 
 impl Environment {
-    pub fn new() -> Self {
-        Self {
+    pub fn new() -> Rc<RefCell<Self>> {
+        Rc::new(RefCell::new(Self {
             identifiers: HashMap::new(),
             parent: None,
-        }
+        }))
+    }
+
+    pub fn with_parent(parent: Rc<RefCell<Self>>) -> Rc<RefCell<Self>> {
+        Rc::new(RefCell::new(Self {
+            identifiers: HashMap::new(),
+            parent: Some(parent),
+        }))
     }
 
     pub fn get(&self, key: &str) -> Option<Value> {

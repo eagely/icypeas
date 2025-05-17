@@ -1,9 +1,12 @@
 use super::Located;
 use crate::err;
 use crate::error::{ErrorKind, Result};
+use crate::interpreter::environment::Environment;
 use crate::model::Expression;
 use crate::model::{Token, TokenValue};
+use std::cell::RefCell;
 use std::fmt::{Display, Formatter};
+use std::rc::Rc;
 
 #[derive(Clone, Debug)]
 pub enum Value {
@@ -15,6 +18,7 @@ pub enum Value {
     Function {
         parameter: Located<Token>,
         body: Located<Expression>,
+        environment: Rc<RefCell<Environment>>,
     },
 }
 
@@ -44,7 +48,9 @@ impl Display for Value {
             Self::Integer(integer) => write!(f, "{integer}"),
             Self::None => write!(f, "None"),
             Self::String(string) => write!(f, "{string}"),
-            Self::Function { parameter, body } => write!(f, "λ{parameter:#?}.{body:#?}"),
+            Self::Function {
+                parameter, body, ..
+            } => write!(f, "λ{parameter:#?}.{body:#?}"),
         }
     }
 }

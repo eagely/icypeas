@@ -17,3 +17,6 @@ addTwice 6 (-2)
 shiftLeft x n = x * 2 ** n
 shiftRight x n = x / 2 ** n 
 shiftRight (shiftLeft 2 8) 8
+
+fac n = if n == 1 then 1 elif n == 0 then 0 else fac (n-1) * n
+fac 7 - 5038

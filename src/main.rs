@@ -12,10 +12,8 @@ use interpreter::{environment::Environment, interpreter::Interpreter};
 use lexer::lexer::Lexer;
 use parser::parser::Parser;
 use std::{
-    cell::RefCell,
     fs::{self, read_dir},
     process::ExitCode,
-    rc::Rc,
 };
 
 fn main() -> ExitCode {
@@ -81,7 +79,7 @@ fn run(source: &str) -> Result<()> {
     let mut parser = Parser::new();
     let ast = parser.parse(tokens)?;
 
-    let environment = Rc::new(RefCell::new(Environment::new()));
+    let environment = Environment::new();
     let mut interpreter = Interpreter::new(environment);
     interpreter.interpret(ast)?;
 
