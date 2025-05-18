@@ -5,9 +5,9 @@ use crate::parser::precedence::Precedence;
 use std::rc::Rc;
 
 macro_rules! try_consume_any {
-    ($self:expr, $($token_type:expr),+) => {{
+    ($self:expr, $($kind:expr),+) => {{
         false $(|| {
-            if $self.current_is($token_type) {
+            if $self.current_is($kind) {
                 $self.advance();
                 true
             } else {
@@ -15,6 +15,19 @@ macro_rules! try_consume_any {
             }
         })+
     }};
+}
+
+macro_rules! consume {
+    ($self:expr, $kind:path, $loc:expr) => {
+        if !$self.current_is($kind) {
+            return err!(
+                ErrorKind::ExpectedExpression,
+                $loc,
+                format!("Expected {:?}, found {:?}", $kind, $self.current())
+            );
+        }
+        $self.advance();
+    };
 }
 
 pub struct Parser {
@@ -214,15 +227,7 @@ impl Parser {
             self.advance();
         }
 
-        if !self.current_is(TokenKind::Dollar) {
-            return err!(
-                ErrorKind::ExpectedExpression,
-                location,
-                "Expected $ after lambda parameters."
-            );
-        }
-
-        self.advance();
+        consume!(self, TokenKind::Dollar, location);
 
         let body = self.parse_expression(Precedence::None)?;
 
@@ -309,14 +314,7 @@ impl Parser {
             TokenKind::LeftParenthesis => {
                 self.advance();
                 let expression = self.parse_expression(Precedence::None)?;
-                if !self.current_is(TokenKind::RightParenthesis) {
-                    return err!(
-                        ErrorKind::MissingClosingParenthesis,
-                        location,
-                        "Expected a closing parenthesis.",
-                    );
-                }
-                self.advance();
+                consume!(self, TokenKind::RightParenthesis, location);
                 Ok(expression)
             }
             TokenKind::True
@@ -365,14 +363,8 @@ impl Parser {
         let location = token.location;
         let condition = self.parse_expression(Precedence::None)?;
 
-        if !self.current_is(TokenKind::Then) {
-            return err!(
-                ErrorKind::IncompleteIf,
-                location,
-                "Missing then keyword after if condition."
-            );
-        }
-        self.advance();
+        consume!(self, TokenKind::Then, location);
+
         let body = self.parse_expression(Precedence::None)?;
 
         let mut branches = vec![(Box::new(condition), Box::new(body))];
@@ -380,27 +372,13 @@ impl Parser {
             self.advance();
             let condition = self.parse_expression(Precedence::None)?;
 
-            if !self.current_is(TokenKind::Then) {
-                return err!(
-                    ErrorKind::IncompleteIf,
-                    location,
-                    "Missing then keyword after if condition."
-                );
-            }
-
-            self.advance();
+            consume!(self, TokenKind::Then, location);
 
             let body = self.parse_expression(Precedence::None)?;
             branches.push((Box::new(condition), Box::new(body)));
         }
-        if !self.current_is(TokenKind::Else) {
-            return err!(
-                ErrorKind::IncompleteIf,
-                location,
-                "Missing else branch in if expression."
-            );
-        }
-        self.advance();
+
+        consume!(self, TokenKind::Else, location);
 
         Ok(Expression::If {
             branches,
