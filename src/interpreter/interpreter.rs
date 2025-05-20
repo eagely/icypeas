@@ -52,7 +52,8 @@ impl Interpreter {
                 Ok(())
             }
             Statement::Expression { expression } => {
-                println!("{}", self.evaluate(expression)?);
+                let value = self.evaluate(expression)?;
+                println!("{}", self.force(value)?);
                 Ok(())
             }
         }
@@ -66,7 +67,7 @@ impl Interpreter {
             } => match operator.node.kind {
                 TokenKind::Bang => {
                     let value = self.evaluate(*expression)?;
-                    match value {
+                    match self.force(value)? {
                         Value::Boolean(b) => Ok(Value::Boolean(!b)),
                         _ => err!(
                             ErrorKind::InvalidArguments,
@@ -77,7 +78,7 @@ impl Interpreter {
                 }
                 TokenKind::Minus => {
                     let value = self.evaluate(*expression)?;
-                    match value {
+                    match self.force(value)? {
                         Value::Integer(i) => Ok(Value::Integer(-i)),
                         _ => err!(
                             ErrorKind::InvalidArguments,
@@ -100,7 +101,7 @@ impl Interpreter {
                 TokenKind::Plus => {
                     let left_value = self.evaluate(*left)?;
                     let right_value = self.evaluate(*right)?;
-                    match (left_value, right_value) {
+                    match (self.force(left_value)?, self.force(right_value)?) {
                         (Value::Integer(l), Value::Integer(r)) => Ok(Value::Integer(l + r)),
                         (Value::String(l), Value::String(r)) => Ok(Value::String(l + &r)),
                         _ => err!(
@@ -113,7 +114,7 @@ impl Interpreter {
                 TokenKind::Minus => {
                     let left_value = self.evaluate(*left)?;
                     let right_value = self.evaluate(*right)?;
-                    match (left_value, right_value) {
+                    match (self.force(left_value)?, self.force(right_value)?) {
                         (Value::Integer(l), Value::Integer(r)) => Ok(Value::Integer(l - r)),
                         _ => err!(
                             ErrorKind::InvalidArguments,
@@ -125,7 +126,7 @@ impl Interpreter {
                 TokenKind::Star => {
                     let left_value = self.evaluate(*left)?;
                     let right_value = self.evaluate(*right)?;
-                    match (left_value, right_value) {
+                    match (self.force(left_value)?, self.force(right_value)?) {
                         (Value::Integer(l), Value::Integer(r)) => Ok(Value::Integer(l * r)),
                         _ => err!(
                             ErrorKind::InvalidArguments,
@@ -137,7 +138,7 @@ impl Interpreter {
                 TokenKind::StarStar => {
                     let left_value = self.evaluate(*left)?;
                     let right_value = self.evaluate(*right)?;
-                    match (left_value, right_value) {
+                    match (self.force(left_value)?, self.force(right_value)?) {
                         (Value::Integer(l), Value::Integer(r)) => {
                             let Ok(exp) = u32::try_from(r) else {
                                 return if (0..=1).contains(&l) {
@@ -172,7 +173,7 @@ impl Interpreter {
                 TokenKind::Slash => {
                     let left_value = self.evaluate(*left)?;
                     let right_value = self.evaluate(*right)?;
-                    match (left_value, right_value) {
+                    match (self.force(left_value)?, self.force(right_value)?) {
                         (Value::Integer(l), Value::Integer(r)) => {
                             if r == 0 {
                                 err!(ErrorKind::DivisionByZero, operator.location)
@@ -190,7 +191,7 @@ impl Interpreter {
                 TokenKind::Percent => {
                     let left_value = self.evaluate(*left)?;
                     let right_value = self.evaluate(*right)?;
-                    match (left_value, right_value) {
+                    match (self.force(left_value)?, self.force(right_value)?) {
                         (Value::Integer(l), Value::Integer(r)) => {
                             if r == 0 {
                                 err!(ErrorKind::DivisionByZero, operator.location)
@@ -208,7 +209,7 @@ impl Interpreter {
                 TokenKind::Ampersand => {
                     let left_value = self.evaluate(*left)?;
                     let right_value = self.evaluate(*right)?;
-                    match (left_value, right_value) {
+                    match (self.force(left_value)?, self.force(right_value)?) {
                         (Value::Integer(l), Value::Integer(r)) => Ok(Value::Integer(l & r)),
                         (Value::Boolean(l), Value::Boolean(r)) => Ok(Value::Boolean(l & r)),
                         _ => err!(
@@ -221,7 +222,7 @@ impl Interpreter {
                 TokenKind::Pipe => {
                     let left_value = self.evaluate(*left)?;
                     let right_value = self.evaluate(*right)?;
-                    match (left_value, right_value) {
+                    match (self.force(left_value)?, self.force(right_value)?) {
                         (Value::Integer(l), Value::Integer(r)) => Ok(Value::Integer(l | r)),
                         (Value::Boolean(l), Value::Boolean(r)) => Ok(Value::Boolean(l | r)),
                         _ => err!(
@@ -234,7 +235,7 @@ impl Interpreter {
                 TokenKind::Caret => {
                     let left_value = self.evaluate(*left)?;
                     let right_value = self.evaluate(*right)?;
-                    match (left_value, right_value) {
+                    match (self.force(left_value)?, self.force(right_value)?) {
                         (Value::Integer(l), Value::Integer(r)) => Ok(Value::Integer(l ^ r)),
                         (Value::Boolean(l), Value::Boolean(r)) => Ok(Value::Boolean(l ^ r)),
                         _ => err!(
@@ -247,7 +248,7 @@ impl Interpreter {
                 TokenKind::BangEqual => {
                     let left_value = self.evaluate(*left)?;
                     let right_value = self.evaluate(*right)?;
-                    match (left_value, right_value) {
+                    match (self.force(left_value)?, self.force(right_value)?) {
                         (Value::Integer(l), Value::Integer(r)) => Ok(Value::Boolean(l != r)),
                         (Value::Boolean(l), Value::Boolean(r)) => Ok(Value::Boolean(l != r)),
                         _ => err!(
@@ -260,7 +261,7 @@ impl Interpreter {
                 TokenKind::EqualEqual => {
                     let left_value = self.evaluate(*left)?;
                     let right_value = self.evaluate(*right)?;
-                    match (left_value, right_value) {
+                    match (self.force(left_value)?, self.force(right_value)?) {
                         (Value::Integer(l), Value::Integer(r)) => Ok(Value::Boolean(l == r)),
                         (Value::Boolean(l), Value::Boolean(r)) => Ok(Value::Boolean(l == r)),
                         _ => err!(
@@ -273,7 +274,7 @@ impl Interpreter {
                 TokenKind::Greater => {
                     let left_value = self.evaluate(*left)?;
                     let right_value = self.evaluate(*right)?;
-                    match (left_value, right_value) {
+                    match (self.force(left_value)?, self.force(right_value)?) {
                         (Value::Integer(l), Value::Integer(r)) => Ok(Value::Boolean(l > r)),
                         (Value::Boolean(l), Value::Boolean(r)) => Ok(Value::Boolean(l && !r)),
                         _ => err!(
@@ -286,7 +287,7 @@ impl Interpreter {
                 TokenKind::GreaterEqual => {
                     let left_value = self.evaluate(*left)?;
                     let right_value = self.evaluate(*right)?;
-                    match (left_value, right_value) {
+                    match (self.force(left_value)?, self.force(right_value)?) {
                         (Value::Integer(l), Value::Integer(r)) => Ok(Value::Boolean(l >= r)),
                         (Value::Boolean(l), Value::Boolean(r)) => Ok(Value::Boolean(l >= r)),
                         _ => err!(
@@ -299,7 +300,7 @@ impl Interpreter {
                 TokenKind::Less => {
                     let left_value = self.evaluate(*left)?;
                     let right_value = self.evaluate(*right)?;
-                    match (left_value, right_value) {
+                    match (self.force(left_value)?, self.force(right_value)?) {
                         (Value::Integer(l), Value::Integer(r)) => Ok(Value::Boolean(l < r)),
                         (Value::Boolean(l), Value::Boolean(r)) => Ok(Value::Boolean(!l & r)),
                         _ => err!(
@@ -312,7 +313,7 @@ impl Interpreter {
                 TokenKind::LessEqual => {
                     let left_value = self.evaluate(*left)?;
                     let right_value = self.evaluate(*right)?;
-                    match (left_value, right_value) {
+                    match (self.force(left_value)?, self.force(right_value)?) {
                         (Value::Integer(l), Value::Integer(r)) => Ok(Value::Boolean(l <= r)),
                         (Value::Boolean(l), Value::Boolean(r)) => Ok(Value::Boolean(l <= r)),
                         _ => err!(
@@ -332,7 +333,7 @@ impl Interpreter {
                 let location = function.location.clone();
                 let function_value = self.evaluate(*function)?;
 
-                match function_value {
+                match self.force(function_value)? {
                     Value::Function {
                         parameter,
                         body,
@@ -345,10 +346,11 @@ impl Interpreter {
                             parameter.node.get_identifier_name().ok_or_else(|| {
                                 Error::new(ErrorKind::InvalidToken, parameter.location)
                             })?;
-                        let evaluated_argument = self.evaluate(*argument)?;
-                        function_environment
-                            .borrow_mut()
-                            .set(parameter_name, evaluated_argument);
+                        let thunk = Value::Thunk {
+                            expression: *argument,
+                            environment: self.environment.clone(),
+                        };
+                        function_environment.borrow_mut().set(parameter_name, thunk);
 
                         self.environment = function_environment;
                         let res = self.evaluate(body)?;
@@ -359,15 +361,16 @@ impl Interpreter {
                     _ => err!(
                         ErrorKind::ExpectedExpression,
                         location,
-                        format!("Tried to invoke a non-function type {:?}", function_value),
+                        "Tried to invoke a non-function type",
                     ),
                 }
             }
             Expression::Identifier { token } => match &token.node.value {
                 TokenValue::Identifier(name) => {
-                    self.environment.borrow().get(name).ok_or_else(|| {
+                    let value = self.environment.borrow().get(name).ok_or_else(|| {
                         Error::new(ErrorKind::InvalidIdentifier, token.location.clone())
-                    })
+                    })?;
+                    self.force(value)
                 }
                 _ => err!(ErrorKind::UnsupportedExpression, token.location.clone()),
             },
@@ -375,20 +378,13 @@ impl Interpreter {
                 branches,
                 otherwise,
             } => {
-                let true_branch = branches
-                    .into_iter()
-                    .map(|(cond, expr)| match self.evaluate(*cond)? {
-                        Value::Boolean(true) => Ok(Some(*expr)),
-                        _ => Ok(None),
-                    })
-                    .find_map(Result::transpose)
-                    .transpose()?;
-
-                if let Some(b) = true_branch {
-                    self.evaluate(b)
-                } else {
-                    self.evaluate(*otherwise)
+                for (condition, expression) in branches {
+                    let value = self.evaluate(*condition)?;
+                    if matches!(self.force(value)?, Value::Boolean(true)) {
+                        return self.evaluate(*expression);
+                    }
                 }
+                self.evaluate(*otherwise)
             }
             Expression::Lambda { parameter, body } => Ok(Value::Function {
                 parameter,
@@ -396,6 +392,22 @@ impl Interpreter {
                 environment: Environment::with_parent(self.environment.clone()),
             }),
             Expression::Literal { token } => (&token).try_into(),
+        }
+    }
+
+    fn force(&mut self, value: Value) -> Result<Value> {
+        match value {
+            Value::Thunk {
+                expression,
+                environment,
+            } => {
+                let old_environment = self.environment.clone();
+                self.environment = environment;
+                let value = self.evaluate(expression)?;
+                self.environment = old_environment;
+                self.force(value)
+            }
+            other => Ok(other),
         }
     }
 }

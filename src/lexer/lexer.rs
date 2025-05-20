@@ -52,7 +52,7 @@ impl Lexer {
         self.source.get(self.index + n).copied()
     }
 
-    fn advance(&mut self) {
+    const fn advance(&mut self) {
         self.index += 1;
     }
 
@@ -199,7 +199,7 @@ impl Lexer {
                     ));
                 }
                 _ => (),
-            };
+            }
         }
 
         let number = self.source[start..=self.index].iter().collect::<String>();

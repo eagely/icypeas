@@ -20,6 +20,10 @@ pub enum Value {
         body: Located<Expression>,
         environment: Rc<RefCell<Environment>>,
     },
+    Thunk {
+        expression: Located<Expression>,
+        environment: Rc<RefCell<Environment>>,
+    },
 }
 
 impl TryFrom<&Located<Token>> for Value {
@@ -51,6 +55,7 @@ impl Display for Value {
             Self::Function {
                 parameter, body, ..
             } => write!(f, "λ{parameter:#?}.{body:#?}"),
+            Self::Thunk { expression, .. } => write!(f, "{expression:#?}"),
         }
     }
 }
