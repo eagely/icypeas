@@ -20,3 +20,7 @@ shiftRight (shiftLeft 2 8) 8
 
 fac n = if n == 1 then 1 elif n == 0 then 0 else fac (n-1) * n
 fac 7 - 5038
+
+loopForever a = loopForever a
+first x y = x
+first 7000 (loopForever 42)

@@ -83,7 +83,7 @@ impl Parser {
         self.tokens.get(self.index + n).cloned()
     }
 
-    fn advance(&mut self) {
+    const fn advance(&mut self) {
         self.index += 1;
     }
 
