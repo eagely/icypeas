@@ -23,4 +23,4 @@ fac 7 - 5038
 
 loopForever a = loopForever a
 first x y = x
-first 7000 (loopForever 42)
+first 2 (loopForever 42)

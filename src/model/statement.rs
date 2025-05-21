@@ -14,6 +14,10 @@ pub enum Statement {
     Expression {
         expression: Located<Expression>,
     },
+    Variable {
+        name: Located<Token>,
+        body: Located<Expression>,
+    },
 }
 
 impl LocatedExt<Self> for Statement {
