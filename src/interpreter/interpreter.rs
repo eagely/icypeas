@@ -56,6 +56,20 @@ impl Interpreter {
                 println!("{}", self.force(value)?);
                 Ok(())
             }
+            Statement::Variable { name, body } => {
+                let name: String = name.node.get_identifier_name().ok_or_else(|| {
+                    Error::with_help(
+                        ErrorKind::InvalidToken,
+                        statement.location.clone(),
+                        "Function name must be an identifier",
+                    )
+                })?;
+
+                let value = self.evaluate(body)?;
+                let value = self.force(value)?;
+                self.environment.borrow_mut().set(name, value);
+                Ok(())
+            }
         }
     }
 

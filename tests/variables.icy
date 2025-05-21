@@ -1,0 +1,5 @@
+add x y = x + y
+
+foo = 7
+bar = -5
+add foo bar

@@ -153,31 +153,30 @@ impl Parser {
 
         let name = self.current().ok_or(ErrorKind::UnexpectedEndOfFile)?;
 
-        if !self.next_is(1, TokenKind::Identifier) {
-            return err!(
-                ErrorKind::ExpectedExpression,
-                name.location,
-                "Missing parameter for function definition.",
-            );
-        }
-
         self.advance();
 
-        let mut parameters = vec![];
+        if self.current_is(TokenKind::Identifier) {
+            let mut parameters = vec![];
 
-        while let Some(t) = self.current() {
-            if !t.node.kind.is_primary() {
-                break;
+            while let Some(t) = self.current() {
+                if !t.node.kind.is_primary() {
+                    break;
+                }
+                parameters.push(t);
+                self.advance();
             }
-            parameters.push(t);
+
             self.advance();
+
+            let body = self.parse_expression(Precedence::None)?;
+            let location = body.location.clone();
+            Self::curry_definition(name, parameters, body, location)
+        } else {
+            self.advance();
+            let body = self.parse_expression(Precedence::None)?;
+            let location = body.location.clone();
+            Ok(Statement::Variable { name, body }.at(location))
         }
-
-        self.advance();
-
-        let body = self.parse_expression(Precedence::None)?;
-        let location = body.location.clone();
-        Self::curry_definition(name, parameters, body, location)
     }
 
     fn curry_definition(
