@@ -66,7 +66,6 @@ impl Interpreter {
                 })?;
 
                 let value = self.evaluate(body)?;
-                let value = self.force(value)?;
                 self.environment.borrow_mut().set(name, value);
                 Ok(())
             }
