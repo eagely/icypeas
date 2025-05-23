@@ -163,6 +163,7 @@ impl Lexer {
             "true" => (TokenKind::True, TokenValue::Boolean(true)),
             "false" => (TokenKind::False, TokenValue::Boolean(false)),
             "null" => (TokenKind::Null, TokenValue::None),
+            "use" => (TokenKind::Use, TokenValue::None),
             _ => return Ok((TokenKind::Identifier, TokenValue::Identifier(identifier))),
         })
     }
@@ -228,7 +229,7 @@ impl Lexer {
         err!(
             ErrorKind::UnterminatedString,
             self.location(),
-            "Consider inserting a \" after this string",
+            "Expected a \" after this string.",
         )
     }
 }

@@ -5,6 +5,7 @@ pub enum TokenValue {
     Float(f64),
     Integer(i128),
     String(String),
+    Use(String),
     Unknown(char),
     None,
 }

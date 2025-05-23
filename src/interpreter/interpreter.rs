@@ -1,18 +1,32 @@
 use super::environment::Environment;
 use crate::err;
 use crate::error::{Error, ErrorKind, Result};
+use crate::lexer::lexer::Lexer;
 use crate::model::{Expression, Located, Statement, TokenKind, TokenValue, Value};
+use crate::parser::parser::Parser;
 use std::cell::RefCell;
 use std::convert::TryInto;
+use std::path::PathBuf;
 use std::rc::Rc;
 
 pub struct Interpreter {
     environment: Rc<RefCell<Environment>>,
+    current_file: Option<PathBuf>,
 }
 
 impl Interpreter {
-    pub const fn new(environment: Rc<RefCell<Environment>>) -> Self {
-        Self { environment }
+    pub fn new(environment: Rc<RefCell<Environment>>) -> Self {
+        Self {
+            environment,
+            current_file: None,
+        }
+    }
+
+    pub fn with_file(environment: Rc<RefCell<Environment>>, file: Option<PathBuf>) -> Self {
+        Self {
+            environment,
+            current_file: file,
+        }
     }
 
     pub fn interpret(&mut self, statements: Vec<Located<Statement>>) -> Result<()> {
@@ -55,6 +69,50 @@ impl Interpreter {
                 let value = self.evaluate(expression)?;
                 println!("{}", self.force(value)?);
                 Ok(())
+            }
+            Statement::Use { path } => {
+                let mut relative_path = String::new();
+                for (i, part) in path.iter().enumerate() {
+                    if let TokenValue::Identifier(ref s) = part.node.value {
+                        if i > 0 {
+                            relative_path.push('/');
+                        }
+                        relative_path.push_str(s);
+                    } else {
+                        return Err(Error::with_help(
+                            ErrorKind::InvalidArguments,
+                            part.location.clone(),
+                            "Import path must be identifiers",
+                        ));
+                    }
+                }
+                relative_path.push_str(".icy");
+
+                let base_dir = self
+                    .current_file
+                    .as_ref()
+                    .and_then(|p| p.parent().map(|p| p.to_path_buf()))
+                    .unwrap_or_else(|| PathBuf::from("."));
+                let file_path = base_dir.join(&relative_path);
+
+                let source = std::fs::read_to_string(&file_path).map_err(|_| {
+                    Error::with_help(
+                        ErrorKind::InvalidArguments,
+                        path[0].location.clone(),
+                        format!("Could not read import file: {}", file_path.display()),
+                    )
+                })?;
+
+                let mut lexer = Lexer::new();
+                let tokens = lexer.lex(&source)?;
+                let mut parser = Parser::new();
+                let ast = parser.parse(tokens)?;
+
+                let prev_file = self.current_file.take();
+                self.current_file = Some(file_path);
+                let result = self.interpret(ast);
+                self.current_file = prev_file;
+                result
             }
             Statement::Variable { name, body } => {
                 let name: String = name.node.get_identifier_name().ok_or_else(|| {

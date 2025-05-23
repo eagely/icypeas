@@ -106,7 +106,47 @@ impl Parser {
     }
 
     fn parse_statement(&mut self) -> Result<Located<Statement>> {
-        self.parse_declaration()
+        self.parse_use()
+    }
+
+    fn parse_use(&mut self) -> Result<Located<Statement>> {
+        let location = self
+            .current()
+            .ok_or(ErrorKind::UnexpectedEndOfFile)?
+            .location;
+
+        if !self.current_is(TokenKind::Use) {
+            return self.parse_declaration();
+        }
+        self.advance();
+
+        let mut path = Vec::new();
+        let first = self.current().ok_or(ErrorKind::UnexpectedEndOfFile)?;
+        if first.node.kind != TokenKind::Identifier {
+            return err!(
+                ErrorKind::ExpectedExpression,
+                first.location,
+                "Expected identifier after use."
+            );
+        }
+        path.push(first);
+        self.advance();
+
+        while self.current_is(TokenKind::Dot) {
+            self.advance();
+            let next = self.current().ok_or(ErrorKind::UnexpectedEndOfFile)?;
+            if next.node.kind != TokenKind::Identifier {
+                return err!(
+                    ErrorKind::ExpectedExpression,
+                    next.location,
+                    "Expected identifier after . in import path."
+                );
+            }
+            path.push(next);
+            self.advance();
+        }
+
+        Ok(Statement::Use { path }.at(location))
     }
 
     fn parse_declaration(&mut self) -> Result<Located<Statement>> {
