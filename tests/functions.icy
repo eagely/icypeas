@@ -1,10 +1,11 @@
+use prelude
+
 churchTrue f s = f
 churchTrue 2 1
 
 churchFalse f s = s
 churchFalse 1 2
 
-add a b = a + b
 add 4 (-2)
 add 1 1
 add 3 1 / 2

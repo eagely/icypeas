@@ -30,6 +30,7 @@ pub enum ErrorKind {
     UnimplementedFunction,
     UnsupportedExpression,
     UnterminatedString,
+    UnterminatedUse,
 }
 
 #[derive(Debug)]
@@ -59,6 +60,7 @@ impl Display for ErrorKind {
             Self::UnimplementedFunction => "Unimplemented function",
             Self::UnsupportedExpression => "Unsupported Expression",
             Self::UnterminatedString => "Unterminated string",
+            Self::UnterminatedUse => "Unterminated use",
         };
         write!(f, "{message}")
     }

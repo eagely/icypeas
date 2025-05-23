@@ -40,6 +40,7 @@ pub enum TokenKind {
     True,
     False,
     Null,
+    Use,
     Identifier,
     Float,
     Integer,

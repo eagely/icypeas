@@ -14,6 +14,9 @@ pub enum Statement {
     Expression {
         expression: Located<Expression>,
     },
+    Use {
+        path: Vec<Located<Token>>,
+    },
     Variable {
         name: Located<Token>,
         body: Located<Expression>,

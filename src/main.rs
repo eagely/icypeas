@@ -41,7 +41,7 @@ fn test() -> ExitCode {
         };
         if path.is_file() {
             match fs::read_to_string(&path) {
-                Ok(content) => match run(&content) {
+                Ok(content) => match run(&content, Some(path.clone())) {
                     Ok(()) => println!(
                         "\x1b[32mSUCCESS\x1b[0m {} completed successfully.",
                         path.display()
@@ -72,7 +72,9 @@ fn test() -> ExitCode {
     ExitCode::SUCCESS
 }
 
-fn run(source: &str) -> Result<()> {
+use std::path::PathBuf;
+
+fn run(source: &str, file_path: Option<PathBuf>) -> Result<()> {
     let mut lexer = Lexer::new();
     let tokens = lexer.lex(source)?;
 
@@ -80,7 +82,7 @@ fn run(source: &str) -> Result<()> {
     let ast = parser.parse(tokens)?;
 
     let environment = Environment::new();
-    let mut interpreter = Interpreter::new(environment);
+    let mut interpreter = Interpreter::with_file(environment, file_path);
     interpreter.interpret(ast)?;
 
     Ok(())

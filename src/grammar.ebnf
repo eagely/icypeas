@@ -1,4 +1,5 @@
 expression = declaration ;
+use = "use" IDENTIFIER { "." IDENTIFIER };
 declaration = IDENTIFIER ":" { "_" | IDENTIFIER } | lambda ;
 lambda = { IDENTIFIER } "$" expression | definition ;
 definition = IDENTIFIER { primary } "=" expression | if ;

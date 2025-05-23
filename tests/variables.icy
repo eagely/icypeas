@@ -1,4 +1,4 @@
-add x y = x + y
+use prelude
 
 foo = 7
 bar = -5
