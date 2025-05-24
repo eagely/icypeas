@@ -1,5 +1,4 @@
 #![warn(clippy::all, clippy::pedantic, clippy::nursery, clippy::cargo)]
-#![allow(clippy::module_inception)]
 #![macro_use]
 mod error;
 mod interpreter;
@@ -8,9 +7,9 @@ mod model;
 mod parser;
 
 use error::Result;
-use interpreter::{environment::Environment, interpreter::Interpreter};
-use lexer::lexer::Lexer;
-use parser::parser::Parser;
+use interpreter::{Environment, Interpreter};
+use lexer::Lexer;
+use parser::Parser;
 use std::{
     fs::{self, read_dir},
     process::ExitCode,
