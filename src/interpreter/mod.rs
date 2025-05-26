@@ -1,3 +1,4 @@
+pub mod builtins;
 pub mod environment;
 
 pub use environment::Environment;
@@ -70,7 +71,7 @@ impl Interpreter {
             }
             Statement::Expression { expression } => {
                 let value = self.evaluate(expression)?;
-                println!("{}", self.force(value)?);
+                println!("Value({})", self.force(value)?);
                 Ok(())
             }
             Statement::Use { path } => {
@@ -431,6 +432,10 @@ impl Interpreter {
                         self.environment = old_environment;
 
                         Ok(res)
+                    }
+                    Value::BuiltinFunction { function } => {
+                        let value = self.evaluate(*argument)?;
+                        function(value, location)
                     }
                     _ => err!(
                         ErrorKind::ExpectedExpression,

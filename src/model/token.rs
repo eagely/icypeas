@@ -8,7 +8,7 @@ use crate::error::{Error, ErrorKind, Result};
 use std::fmt::{Debug, Display, Formatter};
 use std::rc::Rc;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Token {
     pub kind: TokenKind,
     pub value: TokenValue,
@@ -20,16 +20,6 @@ impl LocatedExt<Self> for Token {
             node: self,
             location,
         }
-    }
-}
-
-impl Debug for Located<Token> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{:?}, {:?}, {:?}",
-            self.node.kind, self.node.value, self.location
-        )
     }
 }
 

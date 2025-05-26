@@ -1,3 +1,4 @@
+use super::builtins::println;
 use crate::model::Value;
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
@@ -20,6 +21,15 @@ impl Environment {
             identifiers: HashMap::new(),
             parent: Some(parent),
         }))
+    }
+
+    pub fn add_builtins(&mut self) {
+        self.set(
+            "println".to_string(),
+            Value::BuiltinFunction {
+                function: Rc::new(println),
+            },
+        );
     }
 
     pub fn get(&self, key: &str) -> Option<Value> {

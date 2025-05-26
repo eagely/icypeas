@@ -81,6 +81,7 @@ fn run(source: &str, file_path: Option<PathBuf>) -> Result<()> {
     let ast = parser.parse(tokens)?;
 
     let environment = Environment::new();
+    environment.borrow_mut().add_builtins();
     let mut interpreter = Interpreter::with_file(environment, file_path);
     interpreter.interpret(ast)?;
 

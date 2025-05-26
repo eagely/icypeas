@@ -1,0 +1,9 @@
+println "hello from icypeas"
+
+assertEquals x y = if x == y then null else println "assertion failed"
+assertEquals 1 1
+
+assertNotEquals x y = if x != y then null else println "assertion failed"
+assertNotEquals 1 2
+
+println 2 + 3

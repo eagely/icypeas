@@ -1,14 +1,14 @@
-use super::Located;
+use super::{Located, Location};
 use crate::err;
 use crate::error::{ErrorKind, Result};
 use crate::interpreter::environment::Environment;
 use crate::model::Expression;
 use crate::model::{Token, TokenValue};
 use std::cell::RefCell;
-use std::fmt::{Display, Formatter};
+use std::fmt::{Debug, Display, Formatter};
 use std::rc::Rc;
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub enum Value {
     Boolean(bool),
     Float(f64),
@@ -19,6 +19,9 @@ pub enum Value {
         parameter: Located<Token>,
         body: Located<Expression>,
         environment: Rc<RefCell<Environment>>,
+    },
+    BuiltinFunction {
+        function: Rc<dyn Fn(Value, Rc<Location>) -> Result<Value>>,
     },
     Thunk {
         expression: Located<Expression>,
@@ -44,18 +47,46 @@ impl TryFrom<&Located<Token>> for Value {
     }
 }
 
+impl Debug for Value {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Boolean(b) => write!(f, "Boolean({b:?})"),
+            Self::Float(fl) => write!(f, "Float({fl:?})"),
+            Self::Integer(i) => write!(f, "Integer({i:?})"),
+            Self::None => write!(f, "None"),
+            Self::String(s) => write!(f, "String({s:?})"),
+            Self::Function {
+                parameter, body, ..
+            } => write!(
+                f,
+                "Function {{ parameter: {parameter:?}, body: {body:?}, ... }}"
+            ),
+            Self::BuiltinFunction { .. } => write!(f, "BuiltinFunction"),
+            Self::Thunk { expression, .. } => {
+                write!(f, "Thunk {{ expression: {expression:?}, ... }}")
+            }
+        }
+    }
+}
+
 impl Display for Value {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Boolean(boolean) => write!(f, "{boolean}"),
-            Self::Float(float) => write!(f, "{float}"),
-            Self::Integer(integer) => write!(f, "{integer}"),
+            Self::Boolean(b) => write!(f, "{b}"),
+            Self::Float(fl) => write!(f, "{fl}"),
+            Self::Integer(i) => write!(f, "{i}"),
             Self::None => write!(f, "None"),
-            Self::String(string) => write!(f, "{string}"),
+            Self::String(s) => write!(f, "{s}"),
             Self::Function {
                 parameter, body, ..
-            } => write!(f, "λ{parameter:#?}.{body:#?}"),
-            Self::Thunk { expression, .. } => write!(f, "{expression:#?}"),
+            } => write!(
+                f,
+                "Function {{ parameter: {parameter}, body: {body:?}, ... }}"
+            ),
+            Self::BuiltinFunction { .. } => write!(f, "BuiltinFunction"),
+            Self::Thunk { expression, .. } => {
+                write!(f, "Thunk {{ expression: {expression:?}, ... }}")
+            }
         }
     }
 }
