@@ -6,7 +6,7 @@ pub use environment::Environment;
 use crate::err;
 use crate::error::{Error, ErrorKind, Result};
 use crate::lexer::Lexer;
-use crate::model::{Expression, Located, Statement, TokenKind, TokenValue, Value};
+use crate::model::{Expression, Located, Statement, Token, TokenKind, TokenValue, Value};
 use crate::parser::Parser;
 use std::cell::RefCell;
 use std::convert::TryInto;
@@ -42,7 +42,7 @@ impl Interpreter {
 
     fn execute(&mut self, statement: Located<Statement>) -> Result<()> {
         match statement.node {
-            Statement::Declaration { name, types } => {
+            Statement::Declaration { .. } => {
                 todo!()
             }
             Statement::Definition {
@@ -139,338 +139,269 @@ impl Interpreter {
             Expression::Unary {
                 operator,
                 expression,
-            } => match operator.node.kind {
-                TokenKind::Bang => {
-                    let value = self.evaluate(*expression)?;
-                    match self.force(value)? {
-                        Value::Boolean(b) => Ok(Value::Boolean(!b)),
-                        _ => err!(
-                            ErrorKind::InvalidArguments,
-                            operator.location,
-                            "Invalid type for logical NOT",
-                        ),
-                    }
-                }
-                TokenKind::Minus => {
-                    let value = self.evaluate(*expression)?;
-                    match self.force(value)? {
-                        Value::Integer(i) => Ok(Value::Integer(-i)),
-                        _ => err!(
-                            ErrorKind::InvalidArguments,
-                            operator.location,
-                            "Invalid type for negation",
-                        ),
-                    }
-                }
-                _ => err!(
-                    ErrorKind::UnsupportedExpression,
-                    operator.location.clone(),
-                    format!("Unsupported operator: {:?}", operator.node.kind),
-                ),
-            },
+            } => self.evaluate_unary(operator, *expression),
             Expression::Binary {
                 left,
                 operator,
                 right,
-            } => match operator.node.kind {
-                TokenKind::Plus => {
-                    let left_value = self.evaluate(*left)?;
-                    let right_value = self.evaluate(*right)?;
-                    match (self.force(left_value)?, self.force(right_value)?) {
-                        (Value::Integer(l), Value::Integer(r)) => Ok(Value::Integer(l + r)),
-                        (Value::String(l), Value::String(r)) => Ok(Value::String(l + &r)),
-                        _ => err!(
-                            ErrorKind::InvalidArguments,
-                            operator.location,
-                            "Invalid types for addition",
-                        ),
-                    }
-                }
-                TokenKind::Minus => {
-                    let left_value = self.evaluate(*left)?;
-                    let right_value = self.evaluate(*right)?;
-                    match (self.force(left_value)?, self.force(right_value)?) {
-                        (Value::Integer(l), Value::Integer(r)) => Ok(Value::Integer(l - r)),
-                        _ => err!(
-                            ErrorKind::InvalidArguments,
-                            operator.location,
-                            "Invalid types for subtraction",
-                        ),
-                    }
-                }
-                TokenKind::Star => {
-                    let left_value = self.evaluate(*left)?;
-                    let right_value = self.evaluate(*right)?;
-                    match (self.force(left_value)?, self.force(right_value)?) {
-                        (Value::Integer(l), Value::Integer(r)) => Ok(Value::Integer(l * r)),
-                        _ => err!(
-                            ErrorKind::InvalidArguments,
-                            operator.location,
-                            "Invalid types for multiplication",
-                        ),
-                    }
-                }
-                TokenKind::StarStar => {
-                    let left_value = self.evaluate(*left)?;
-                    let right_value = self.evaluate(*right)?;
-                    match (self.force(left_value)?, self.force(right_value)?) {
-                        (Value::Integer(l), Value::Integer(r)) => {
-                            let Ok(exp) = u32::try_from(r) else {
-                                return if (0..=1).contains(&l) {
-                                    Ok(Value::Integer(l))
-                                } else {
-                                    Err(if r > 0 {
-                                        Error::with_help(
-                                            ErrorKind::Overflow,
-                                            operator.location,
-                                            "Exponent too large",
-                                        )
-                                    } else {
-                                        Error::with_help(
-                                            ErrorKind::InvalidArguments,
-                                            operator.location,
-                                            "Exponent must be a non-negative integer",
-                                        )
-                                    })
-                                };
-                            };
-                            Ok(Value::Integer(l.checked_pow(exp).ok_or_else(|| {
-                                Error::new(ErrorKind::Overflow, operator.location)
-                            })?))
-                        }
-                        _ => err!(
-                            ErrorKind::InvalidArguments,
-                            operator.location,
-                            "Invalid types for exponentiation",
-                        ),
-                    }
-                }
-                TokenKind::Slash => {
-                    let left_value = self.evaluate(*left)?;
-                    let right_value = self.evaluate(*right)?;
-                    match (self.force(left_value)?, self.force(right_value)?) {
-                        (Value::Integer(l), Value::Integer(r)) => {
-                            if r == 0 {
-                                err!(ErrorKind::DivisionByZero, operator.location)
-                            } else {
-                                Ok(Value::Integer(l / r))
-                            }
-                        }
-                        _ => err!(
-                            ErrorKind::InvalidArguments,
-                            operator.location,
-                            "Invalid types for division",
-                        ),
-                    }
-                }
-                TokenKind::Percent => {
-                    let left_value = self.evaluate(*left)?;
-                    let right_value = self.evaluate(*right)?;
-                    match (self.force(left_value)?, self.force(right_value)?) {
-                        (Value::Integer(l), Value::Integer(r)) => {
-                            if r == 0 {
-                                err!(ErrorKind::DivisionByZero, operator.location)
-                            } else {
-                                Ok(Value::Integer(l % r))
-                            }
-                        }
-                        _ => err!(
-                            ErrorKind::InvalidArguments,
-                            operator.location,
-                            "Invalid types for modulo",
-                        ),
-                    }
-                }
-                TokenKind::Ampersand => {
-                    let left_value = self.evaluate(*left)?;
-                    let right_value = self.evaluate(*right)?;
-                    match (self.force(left_value)?, self.force(right_value)?) {
-                        (Value::Integer(l), Value::Integer(r)) => Ok(Value::Integer(l & r)),
-                        (Value::Boolean(l), Value::Boolean(r)) => Ok(Value::Boolean(l & r)),
-                        _ => err!(
-                            ErrorKind::InvalidArguments,
-                            operator.location,
-                            "Invalid types for logical AND",
-                        ),
-                    }
-                }
-                TokenKind::Pipe => {
-                    let left_value = self.evaluate(*left)?;
-                    let right_value = self.evaluate(*right)?;
-                    match (self.force(left_value)?, self.force(right_value)?) {
-                        (Value::Integer(l), Value::Integer(r)) => Ok(Value::Integer(l | r)),
-                        (Value::Boolean(l), Value::Boolean(r)) => Ok(Value::Boolean(l | r)),
-                        _ => err!(
-                            ErrorKind::InvalidArguments,
-                            operator.location,
-                            "Invalid types for logical OR",
-                        ),
-                    }
-                }
-                TokenKind::Caret => {
-                    let left_value = self.evaluate(*left)?;
-                    let right_value = self.evaluate(*right)?;
-                    match (self.force(left_value)?, self.force(right_value)?) {
-                        (Value::Integer(l), Value::Integer(r)) => Ok(Value::Integer(l ^ r)),
-                        (Value::Boolean(l), Value::Boolean(r)) => Ok(Value::Boolean(l ^ r)),
-                        _ => err!(
-                            ErrorKind::InvalidArguments,
-                            operator.location,
-                            "Invalid types for logical XOR",
-                        ),
-                    }
-                }
-                TokenKind::BangEqual => {
-                    let left_value = self.evaluate(*left)?;
-                    let right_value = self.evaluate(*right)?;
-                    match (self.force(left_value)?, self.force(right_value)?) {
-                        (Value::Integer(l), Value::Integer(r)) => Ok(Value::Boolean(l != r)),
-                        (Value::Boolean(l), Value::Boolean(r)) => Ok(Value::Boolean(l != r)),
-                        _ => err!(
-                            ErrorKind::InvalidArguments,
-                            operator.location,
-                            "Invalid types for inequality",
-                        ),
-                    }
-                }
-                TokenKind::EqualEqual => {
-                    let left_value = self.evaluate(*left)?;
-                    let right_value = self.evaluate(*right)?;
-                    match (self.force(left_value)?, self.force(right_value)?) {
-                        (Value::Integer(l), Value::Integer(r)) => Ok(Value::Boolean(l == r)),
-                        (Value::Boolean(l), Value::Boolean(r)) => Ok(Value::Boolean(l == r)),
-                        _ => err!(
-                            ErrorKind::InvalidArguments,
-                            operator.location,
-                            "Invalid types for equality",
-                        ),
-                    }
-                }
-                TokenKind::Greater => {
-                    let left_value = self.evaluate(*left)?;
-                    let right_value = self.evaluate(*right)?;
-                    match (self.force(left_value)?, self.force(right_value)?) {
-                        (Value::Integer(l), Value::Integer(r)) => Ok(Value::Boolean(l > r)),
-                        (Value::Boolean(l), Value::Boolean(r)) => Ok(Value::Boolean(l && !r)),
-                        _ => err!(
-                            ErrorKind::InvalidArguments,
-                            operator.location,
-                            "Invalid types for greater than",
-                        ),
-                    }
-                }
-                TokenKind::GreaterEqual => {
-                    let left_value = self.evaluate(*left)?;
-                    let right_value = self.evaluate(*right)?;
-                    match (self.force(left_value)?, self.force(right_value)?) {
-                        (Value::Integer(l), Value::Integer(r)) => Ok(Value::Boolean(l >= r)),
-                        (Value::Boolean(l), Value::Boolean(r)) => Ok(Value::Boolean(l >= r)),
-                        _ => err!(
-                            ErrorKind::InvalidArguments,
-                            operator.location,
-                            "Invalid types for greater than or equal to",
-                        ),
-                    }
-                }
-                TokenKind::Less => {
-                    let left_value = self.evaluate(*left)?;
-                    let right_value = self.evaluate(*right)?;
-                    match (self.force(left_value)?, self.force(right_value)?) {
-                        (Value::Integer(l), Value::Integer(r)) => Ok(Value::Boolean(l < r)),
-                        (Value::Boolean(l), Value::Boolean(r)) => Ok(Value::Boolean(!l & r)),
-                        _ => err!(
-                            ErrorKind::InvalidArguments,
-                            operator.location,
-                            "Invalid types for less than",
-                        ),
-                    }
-                }
-                TokenKind::LessEqual => {
-                    let left_value = self.evaluate(*left)?;
-                    let right_value = self.evaluate(*right)?;
-                    match (self.force(left_value)?, self.force(right_value)?) {
-                        (Value::Integer(l), Value::Integer(r)) => Ok(Value::Boolean(l <= r)),
-                        (Value::Boolean(l), Value::Boolean(r)) => Ok(Value::Boolean(l <= r)),
-                        _ => err!(
-                            ErrorKind::InvalidArguments,
-                            operator.location,
-                            "Invalid types for less than or equal to",
-                        ),
-                    }
-                }
-                _ => err!(
-                    ErrorKind::UnsupportedExpression,
-                    operator.location.clone(),
-                    format!("Unsupported operator: {:?}", operator.node.kind),
-                ),
-            },
-            Expression::Call { function, argument } => {
-                let location = function.location.clone();
-                let function_value = self.evaluate(*function)?;
-
-                match self.force(function_value)? {
-                    Value::Function {
-                        parameter,
-                        body,
-                        environment,
-                    } => {
-                        let old_environment = self.environment.clone();
-                        let function_environment = Environment::with_parent(environment);
-
-                        let parameter_name =
-                            parameter.node.get_identifier_name().ok_or_else(|| {
-                                Error::new(ErrorKind::InvalidToken, parameter.location)
-                            })?;
-                        let thunk = Value::Thunk {
-                            expression: *argument,
-                            environment: self.environment.clone(),
-                        };
-                        function_environment.borrow_mut().set(parameter_name, thunk);
-
-                        self.environment = function_environment;
-                        let res = self.evaluate(body)?;
-                        self.environment = old_environment;
-
-                        Ok(res)
-                    }
-                    Value::BuiltinFunction { function } => {
-                        let value = self.evaluate(*argument)?;
-                        function(value, location)
-                    }
-                    _ => err!(
-                        ErrorKind::ExpectedExpression,
-                        location,
-                        "Tried to invoke a non-function type",
-                    ),
-                }
-            }
-            Expression::Identifier { token } => match &token.node.value {
-                TokenValue::Identifier(name) => {
-                    let value = self.environment.borrow().get(name).ok_or_else(|| {
-                        Error::new(ErrorKind::InvalidIdentifier, token.location.clone())
-                    })?;
-                    self.force(value)
-                }
-                _ => err!(ErrorKind::UnsupportedExpression, token.location.clone()),
-            },
+            } => self.evaluate_binary(*left, operator, *right),
+            Expression::Call { function, argument } => self.evaluate_call(*function, *argument),
+            Expression::Identifier { token } => self.evaluate_identifier(&token),
             Expression::If {
                 branches,
                 otherwise,
-            } => {
-                for (condition, expression) in branches {
-                    let value = self.evaluate(*condition)?;
-                    if matches!(self.force(value)?, Value::Boolean(true)) {
-                        return self.evaluate(*expression);
-                    }
-                }
-                self.evaluate(*otherwise)
-            }
-            Expression::Lambda { parameter, body } => Ok(Value::Function {
-                parameter,
-                body: *body,
-                environment: Environment::with_parent(self.environment.clone()),
-            }),
+            } => self.evaluate_if(branches, *otherwise),
+            Expression::Lambda { parameter, body } => self.evaluate_lambda(parameter, *body),
             Expression::Literal { token } => (&token).try_into(),
+        }
+    }
+
+    fn evaluate_unary(
+        &mut self,
+        operator: Located<Token>,
+        expression: Located<Expression>,
+    ) -> Result<Value> {
+        match operator.node.kind {
+            TokenKind::Bang => {
+                let value = self.evaluate(expression)?;
+                match self.force(value)? {
+                    Value::Boolean(b) => Ok(Value::Boolean(!b)),
+                    _ => err!(
+                        ErrorKind::InvalidArguments,
+                        operator.location,
+                        "Invalid type for logical NOT",
+                    ),
+                }
+            }
+            TokenKind::Minus => {
+                let value = self.evaluate(expression)?;
+                match self.force(value)? {
+                    Value::Integer(i) => Ok(Value::Integer(-i)),
+                    _ => err!(
+                        ErrorKind::InvalidArguments,
+                        operator.location,
+                        "Invalid type for negation",
+                    ),
+                }
+            }
+            _ => err!(
+                ErrorKind::UnsupportedExpression,
+                operator.location.clone(),
+                format!("Unsupported operator: {:?}", operator.node.kind),
+            ),
+        }
+    }
+
+    fn evaluate_binary(
+        &mut self,
+        left: Located<Expression>,
+        operator: Located<Token>,
+        right: Located<Expression>,
+    ) -> Result<Value> {
+        let left_value = self.evaluate(left)?;
+        let right_value = self.evaluate(right)?;
+        let left_forced = self.force(left_value)?;
+        let right_forced = self.force(right_value)?;
+
+        match (operator.node.kind, left_forced, right_forced) {
+            (TokenKind::Plus, Value::Integer(l), Value::Integer(r)) => l
+                .checked_add(r)
+                .map(Value::Integer)
+                .ok_or_else(|| Error::new(ErrorKind::Overflow, operator.location.clone())),
+            (TokenKind::Plus, Value::String(l), Value::String(r)) => Ok(Value::String(l + &r)),
+
+            (TokenKind::Minus, Value::Integer(l), Value::Integer(r)) => l
+                .checked_sub(r)
+                .map(Value::Integer)
+                .ok_or_else(|| Error::new(ErrorKind::Overflow, operator.location.clone())),
+
+            (TokenKind::Star, Value::Integer(l), Value::Integer(r)) => l
+                .checked_mul(r)
+                .map(Value::Integer)
+                .ok_or_else(|| Error::new(ErrorKind::Overflow, operator.location.clone())),
+
+            (TokenKind::StarStar, Value::Integer(l), Value::Integer(r)) => {
+                let exp = match u32::try_from(r) {
+                    Ok(exp) => exp,
+                    Err(_) if (0..=1).contains(&l) => return Ok(Value::Integer(l)),
+                    Err(_) => {
+                        return if r > 0 {
+                            err!(ErrorKind::Overflow, operator.location, "Exponent too large")
+                        } else {
+                            err!(
+                                ErrorKind::InvalidArguments,
+                                operator.location,
+                                "Exponent must be non-negative"
+                            )
+                        };
+                    }
+                };
+                l.checked_pow(exp)
+                    .map(Value::Integer)
+                    .ok_or_else(|| Error::new(ErrorKind::Overflow, operator.location.clone()))
+            }
+
+            (TokenKind::Slash, Value::Integer(l), Value::Integer(r)) => {
+                if r == 0 {
+                    err!(ErrorKind::DivisionByZero, operator.location)
+                } else {
+                    Ok(Value::Integer(l / r))
+                }
+            }
+
+            (TokenKind::Percent, Value::Integer(l), Value::Integer(r)) => {
+                if r == 0 {
+                    err!(ErrorKind::DivisionByZero, operator.location)
+                } else {
+                    Ok(Value::Integer(l % r))
+                }
+            }
+
+            (TokenKind::Ampersand, Value::Integer(l), Value::Integer(r)) => {
+                Ok(Value::Integer(l & r))
+            }
+            (TokenKind::Ampersand, Value::Boolean(l), Value::Boolean(r)) => {
+                Ok(Value::Boolean(l & r))
+            }
+
+            (TokenKind::Pipe, Value::Integer(l), Value::Integer(r)) => Ok(Value::Integer(l | r)),
+            (TokenKind::Pipe, Value::Boolean(l), Value::Boolean(r)) => Ok(Value::Boolean(l | r)),
+
+            (TokenKind::Caret, Value::Integer(l), Value::Integer(r)) => Ok(Value::Integer(l ^ r)),
+            (TokenKind::Caret, Value::Boolean(l), Value::Boolean(r)) => Ok(Value::Boolean(l ^ r)),
+
+            (TokenKind::BangEqual, Value::Integer(l), Value::Integer(r)) => {
+                Ok(Value::Boolean(l != r))
+            }
+            (TokenKind::BangEqual, Value::Boolean(l), Value::Boolean(r)) => {
+                Ok(Value::Boolean(l != r))
+            }
+
+            (TokenKind::EqualEqual, Value::Integer(l), Value::Integer(r)) => {
+                Ok(Value::Boolean(l == r))
+            }
+            (TokenKind::EqualEqual, Value::Boolean(l), Value::Boolean(r)) => {
+                Ok(Value::Boolean(l == r))
+            }
+
+            (TokenKind::Greater, Value::Integer(l), Value::Integer(r)) => Ok(Value::Boolean(l > r)),
+            (TokenKind::Greater, Value::Boolean(l), Value::Boolean(r)) => {
+                Ok(Value::Boolean(l && !r))
+            }
+
+            (TokenKind::GreaterEqual, Value::Integer(l), Value::Integer(r)) => {
+                Ok(Value::Boolean(l >= r))
+            }
+            (TokenKind::GreaterEqual, Value::Boolean(l), Value::Boolean(r)) => {
+                Ok(Value::Boolean(l >= r))
+            }
+
+            (TokenKind::Less, Value::Integer(l), Value::Integer(r)) => Ok(Value::Boolean(l < r)),
+            (TokenKind::Less, Value::Boolean(l), Value::Boolean(r)) => Ok(Value::Boolean(!l & r)),
+
+            (TokenKind::LessEqual, Value::Integer(l), Value::Integer(r)) => {
+                Ok(Value::Boolean(l <= r))
+            }
+            (TokenKind::LessEqual, Value::Boolean(l), Value::Boolean(r)) => {
+                Ok(Value::Boolean(l <= r))
+            }
+
+            (op, left, right) => err!(
+                ErrorKind::InvalidArguments,
+                operator.location,
+                format!("{:?} and {:?} have invalid types for {:?}", left, right, op),
+            ),
+        }
+    }
+
+    fn evaluate_call(
+        &mut self,
+        function: Located<Expression>,
+        argument: Located<Expression>,
+    ) -> Result<Value> {
+        let location = function.location.clone();
+        let function_value = self.evaluate(function)?;
+
+        match self.force(function_value)? {
+            Value::Function {
+                parameter,
+                body,
+                environment,
+            } => {
+                let old_environment = self.environment.clone();
+                let function_environment = Environment::with_parent(environment);
+
+                let parameter_name = parameter
+                    .node
+                    .get_identifier_name()
+                    .ok_or_else(|| Error::new(ErrorKind::InvalidToken, parameter.location))?;
+                let thunk = Value::Thunk {
+                    expression: argument,
+                    environment: self.environment.clone(),
+                };
+                function_environment.borrow_mut().set(parameter_name, thunk);
+
+                self.environment = function_environment;
+                let res = self.evaluate(body)?;
+                self.environment = old_environment;
+
+                Ok(res)
+            }
+            Value::BuiltinFunction { function } => {
+                let value = self.evaluate(argument)?;
+                function(value, location)
+            }
+            _ => err!(
+                ErrorKind::ExpectedExpression,
+                location,
+                "Tried to invoke a non-function type",
+            ),
+        }
+    }
+
+    fn evaluate_identifier(&mut self, token: &Located<Token>) -> Result<Value> {
+        match &token.node.value {
+            TokenValue::Identifier(name) => {
+                let value = self.environment.borrow().get(name).ok_or_else(|| {
+                    Error::new(ErrorKind::InvalidIdentifier, token.location.clone())
+                })?;
+                self.force(value)
+            }
+            _ => err!(ErrorKind::UnsupportedExpression, token.location.clone()),
+        }
+    }
+
+    fn evaluate_if(
+        &mut self,
+        branches: Vec<(Located<Expression>, Located<Expression>)>,
+        otherwise: Located<Expression>,
+    ) -> Result<Value> {
+        for (condition, expression) in branches {
+            let value = self.evaluate(condition)?;
+            if matches!(self.force(value)?, Value::Boolean(true)) {
+                return self.evaluate(expression);
+            }
+        }
+        self.evaluate(otherwise)
+    }
+
+    fn evaluate_lambda(
+        &self,
+        parameter: Located<Token>,
+        body: Located<Expression>,
+    ) -> Result<Value> {
+        if TokenKind::Identifier == parameter.node.kind {
+            Ok(Value::Function {
+                parameter,
+                body,
+                environment: Environment::with_parent(self.environment.clone()),
+            })
+        } else {
+            err!(
+                ErrorKind::InvalidToken,
+                parameter.location,
+                "Expected an identifier"
+            )
         }
     }
 

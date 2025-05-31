@@ -19,7 +19,7 @@ pub enum Expression {
         token: Located<Token>,
     },
     If {
-        branches: Vec<(Box<Located<Expression>>, Box<Located<Expression>>)>,
+        branches: Vec<(Located<Expression>, Located<Expression>)>,
         otherwise: Box<Located<Expression>>,
     },
     Lambda {

@@ -1,4 +1,3 @@
-#![warn(clippy::all, clippy::pedantic, clippy::nursery, clippy::cargo)]
 #![macro_use]
 mod error;
 mod interpreter;

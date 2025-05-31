@@ -409,7 +409,7 @@ impl Parser {
 
         let body = self.parse_expression(Precedence::None)?;
 
-        let mut branches = vec![(Box::new(condition), Box::new(body))];
+        let mut branches = vec![(condition, body)];
         while self.current_is(TokenKind::Elif) {
             self.advance();
             let condition = self.parse_expression(Precedence::None)?;
@@ -417,7 +417,7 @@ impl Parser {
             consume!(self, TokenKind::Then, location);
 
             let body = self.parse_expression(Precedence::None)?;
-            branches.push((Box::new(condition), Box::new(body)));
+            branches.push((condition, body));
         }
 
         consume!(self, TokenKind::Else, location);
