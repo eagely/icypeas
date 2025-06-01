@@ -1,0 +1,19 @@
+println "outside comment"
+
+-- inside comment
+
+{-
+    inside comment
+-}
+
+{-
+    -- inside nested comment
+-}
+
+{-
+    {-
+        inside nested comment
+    -}
+-}
+
+println "outside comment"

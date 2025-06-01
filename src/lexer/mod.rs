@@ -71,7 +71,7 @@ impl Lexer {
                     self.bol = self.index + 1;
                     TokenKind::Newline
                 }
-                '{' => TokenKind::LeftBrace,
+                '{' => self.consume_comment(),
                 '}' => TokenKind::RightBrace,
                 '[' => TokenKind::LeftBracket,
                 ']' => TokenKind::RightBracket,
@@ -88,7 +88,19 @@ impl Lexer {
                 '^' => TokenKind::Caret,
                 '|' => TokenKind::Pipe,
                 '+' => TokenKind::Plus,
-                '-' => TokenKind::Minus,
+                '-' => {
+                    if self.consume('-') {
+                        while let Some(c) = self.current() {
+                            if c == '\n' {
+                                break;
+                            }
+                            self.advance();
+                        }
+                        TokenKind::Newline
+                    } else {
+                        TokenKind::Minus
+                    }
+                }
                 '*' => {
                     if self.consume('*') {
                         TokenKind::StarStar
@@ -141,6 +153,33 @@ impl Lexer {
             },
             TokenValue::None,
         ))
+    }
+
+    fn consume_comment(&mut self) -> TokenKind {
+        if self.consume('-') {
+            let mut nesting = 1;
+            loop {
+                match (self.current(), self.next(1)) {
+                    (Some('{'), Some('-')) => {
+                        nesting += 1;
+                        self.advance();
+                        self.advance();
+                    }
+                    (Some('-'), Some('}')) => {
+                        nesting -= 1;
+                        self.advance();
+                        self.advance();
+                    }
+                    _ => self.advance(),
+                }
+                if nesting == 0 {
+                    break;
+                }
+            }
+            TokenKind::Newline
+        } else {
+            TokenKind::LeftBrace
+        }
     }
 
     fn consume_identifier(&mut self) -> Result<(TokenKind, TokenValue)> {
