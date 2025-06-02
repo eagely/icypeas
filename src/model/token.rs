@@ -14,6 +14,12 @@ pub struct Token {
     pub value: TokenValue,
 }
 
+impl Token {
+    pub fn new(kind: TokenKind, value: TokenValue) -> Self {
+        Self { kind, value }
+    }
+}
+
 impl LocatedExt<Self> for Token {
     fn at(self, location: Rc<Location>) -> super::Located<Self> {
         Located {

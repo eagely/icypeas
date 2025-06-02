@@ -28,8 +28,7 @@ impl Lexer {
                 self.advance();
                 continue;
             }
-            let (kind, value) = self.consume_token(c)?;
-            tokens.push(Token { kind, value }.at(self.location()));
+            tokens.push(self.consume_token(c)?.at(self.location()));
             self.advance();
         }
         Ok(tokens)
@@ -63,8 +62,8 @@ impl Lexer {
         })
     }
 
-    fn consume_token(&mut self, c: char) -> Result<(TokenKind, TokenValue)> {
-        Ok((
+    fn consume_token(&mut self, c: char) -> Result<Token> {
+        Ok(Token::new(
             match c {
                 '\n' => {
                     self.row += 1;
@@ -145,9 +144,9 @@ impl Lexer {
                     return if c.is_ascii_digit() {
                         self.consume_number()
                     } else if c.is_alphabetic() || c == '_' {
-                        self.consume_identifier()
+                        Ok(self.consume_identifier())
                     } else {
-                        Ok((TokenKind::Unknown, TokenValue::Unknown(c)))
+                        Ok(Token::new(TokenKind::Unknown, TokenValue::Unknown(c)))
                     };
                 }
             },
@@ -182,7 +181,7 @@ impl Lexer {
         }
     }
 
-    fn consume_identifier(&mut self) -> Result<(TokenKind, TokenValue)> {
+    fn consume_identifier(&mut self) -> Token {
         let start = self.index;
 
         while let Some(c) = self.next(1) {
@@ -194,20 +193,20 @@ impl Lexer {
 
         let identifier: String = self.source[start..=self.index].iter().collect();
 
-        Ok(match identifier.as_str() {
-            "if" => (TokenKind::If, TokenValue::None),
-            "then" => (TokenKind::Then, TokenValue::None),
-            "elif" => (TokenKind::Elif, TokenValue::None),
-            "else" => (TokenKind::Else, TokenValue::None),
-            "true" => (TokenKind::True, TokenValue::Boolean(true)),
-            "false" => (TokenKind::False, TokenValue::Boolean(false)),
-            "null" => (TokenKind::Null, TokenValue::None),
-            "use" => (TokenKind::Use, TokenValue::None),
-            _ => return Ok((TokenKind::Identifier, TokenValue::Identifier(identifier))),
-        })
+        match identifier.as_str() {
+            "if" => Token::new(TokenKind::If, TokenValue::None),
+            "then" => Token::new(TokenKind::Then, TokenValue::None),
+            "elif" => Token::new(TokenKind::Elif, TokenValue::None),
+            "else" => Token::new(TokenKind::Else, TokenValue::None),
+            "true" => Token::new(TokenKind::True, TokenValue::Boolean(true)),
+            "false" => Token::new(TokenKind::False, TokenValue::Boolean(false)),
+            "null" => Token::new(TokenKind::Null, TokenValue::None),
+            "use" => Token::new(TokenKind::Use, TokenValue::None),
+            _ => Token::new(TokenKind::Identifier, TokenValue::Identifier(identifier)),
+        }
     }
 
-    fn consume_number(&mut self) -> Result<(TokenKind, TokenValue)> {
+    fn consume_number(&mut self) -> Result<Token> {
         let start = self.index;
 
         while let Some(c) = self.next(1) {
@@ -229,7 +228,7 @@ impl Lexer {
 
                     let number = self.source[start..=self.index].iter().collect::<String>();
 
-                    return Ok((
+                    return Ok(Token::new(
                         TokenKind::Float,
                         TokenValue::Float(
                             number
@@ -244,7 +243,7 @@ impl Lexer {
 
         let number = self.source[start..=self.index].iter().collect::<String>();
 
-        Ok((
+        Ok(Token::new(
             TokenKind::Integer,
             TokenValue::Integer(
                 number
@@ -254,12 +253,12 @@ impl Lexer {
         ))
     }
 
-    fn consume_string(&mut self) -> Result<(TokenKind, TokenValue)> {
+    fn consume_string(&mut self) -> Result<Token> {
         let start = self.index + 1;
         while let Some(c) = self.next(1) {
             self.advance();
             if c == '"' {
-                return Ok((
+                return Ok(Token::new(
                     TokenKind::String,
                     TokenValue::String(self.source[start..self.index].iter().collect()),
                 ));
